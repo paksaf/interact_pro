@@ -1,0 +1,38 @@
+; systemd unit for the Interact Pro translate proxy.
+;
+; Install:
+;   sudo cp interact-translate.service /etc/systemd/system/
+;   sudo cp env.example /etc/interact/translate.env
+;   sudo $EDITOR /etc/interact/translate.env       # fill in real values
+;   sudo systemctl daemon-reload
+;   sudo systemctl enable --now interact-translate
+;
+; Logs:  journalctl -u interact-translate -f
+; Restart on edit: sudo systemctl restart interact-translate
+
+[Unit]
+Description=Interact Pro DeepSeek translate proxy
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+; Adjust user/group + paths for your box. The user only needs read on the
+; service files and execute on node — no special privileges.
+User=interact
+Group=interact
+WorkingDirectory=/opt/interact/translate-proxy
+EnvironmentFile=/etc/interact/translate.env
+ExecStart=/usr/bin/node index.js
+Restart=on-failure
+RestartSec=2
+; Hardening — denies file system writes outside the service dir, network
+; namespacing left open since we need outbound HTTPS to api.deepseek.com.
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/var/log/interact
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,21 @@
+# Copy this file to android/key.properties (already gitignored) and
+# fill in the real values. The release build pipeline reads it at
+# Gradle config time. Without it, release builds fall back to the debug
+# keystore (fine for `flutter run --release`, NOT acceptable for
+# anything you ship publicly).
+#
+# Generate the keystore once with:
+#   keytool -genkey -v \
+#     -keystore ~/keys/interactpak-upload.jks \
+#     -keyalg RSA -keysize 2048 -validity 10000 \
+#     -alias upload \
+#     -storetype JKS
+#
+# Then back the .jks file up to your password manager. Losing it means
+# you can never push another update to Google Play under the same
+# listing.
+
+storePassword=REPLACE_ME
+keyPassword=REPLACE_ME
+keyAlias=upload
+storeFile=/Users/muzafar/keys/interactpak-upload.jks

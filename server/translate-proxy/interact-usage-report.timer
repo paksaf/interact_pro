@@ -1,0 +1,13 @@
+; Fires the usage-report service every Monday at 09:00 server time.
+; Persistent=true means a missed run (box was off) gets caught up on boot.
+
+[Unit]
+Description=Weekly trigger for interact-usage-report.service
+
+[Timer]
+OnCalendar=Mon *-*-* 09:00:00
+Persistent=true
+Unit=interact-usage-report.service
+
+[Install]
+WantedBy=timers.target

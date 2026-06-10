@@ -1,0 +1,16 @@
+# Configuration for `flutter gen-l10n` (also auto-run by `flutter pub get`
+# when `flutter.generate: true` is in pubspec.yaml).
+#
+# Recent Flutter releases removed the `synthetic-package` option. The
+# generated AppLocalizations now lands as a real source file at
+# lib/l10n/app_localizations.dart and is imported with a normal relative
+# path: `import 'l10n/app_localizations.dart';`
+#
+# See: http://flutter.dev/to/flutter-gen-deprecation
+
+arb-dir: lib/l10n
+output-dir: lib/l10n
+template-arb-file: app_en.arb
+output-localization-file: app_localizations.dart
+output-class: AppLocalizations
+nullable-getter: false

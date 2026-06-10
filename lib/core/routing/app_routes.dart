@@ -1,0 +1,74 @@
+/// Typed route names. Avoid string literals when calling `context.goNamed`.
+class AppRoutes {
+  AppRoutes._();
+
+  static const String home = 'home';
+  static const String viewer = 'viewer';
+  static const String editor = 'editor';
+  static const String ocr = 'ocr';
+  static const String scanner = 'scanner';
+  static const String driveBrowser = 'drive-browser';
+  static const String signaturePad = 'signature-pad';
+  static const String stampPicker = 'stamp-picker';
+  static const String settings = 'settings';
+  static const String ttsSettings = 'tts-settings';
+  static const String paywall = 'paywall';
+  static const String nearbyDevices = 'nearby-devices';
+  static const String findSigned = 'find-signed';
+  static const String imageIdentifier = 'image-identifier';
+  static const String converter = 'converter';
+  static const String batchOcr = 'batch-ocr';
+  static const String measuring = 'measuring';
+  static const String handwriting = 'handwriting';
+  static const String handwritingDoc = 'handwriting-doc';
+  static const String arMeasuring = 'ar-measuring';
+  static const String library = 'library';
+  static const String bookViewer = 'book-viewer';
+  static const String login = 'login';
+  static const String otp = 'otp';
+  static const String admin = 'admin';
+  static const String supportChat = 'support-chat';
+  static const String imageViewer = 'image-viewer';
+  static const String tagManager = 'tag-manager';
+  static const String referenceDiary = 'reference-diary';
+  static const String verifySignatures = 'verify-signatures';
+  static const String castReceiver = 'cast-receiver';
+  static const String stickyNotes  = 'sticky-notes';
+  static const String help         = 'help';
+  static const String onboarding   = 'onboarding';
+
+  // Path constants for go_router config
+  static const pathHome = '/';
+  static const pathOcr = '/ocr';
+  static const pathScanner = '/scanner';
+  static const pathDrive = '/drive';
+  static const pathViewer = '/viewer';
+  static const pathEditor = '/editor';
+  static const pathSignaturePad = '/signature';
+  static const pathPaywall = '/paywall';
+  static const pathSettings = '/settings';
+  static const pathTtsSettings = '/settings/tts';
+  static const pathNearbyDevices = '/nearby';
+  static const pathFindSigned = '/find-signed';
+  static const pathImageIdentifier = '/identify';
+  static const pathConverter = '/converter';
+  static const pathBatchOcr = '/batch-ocr';
+  static const pathMeasuring = '/measure';
+  static const pathHandwriting = '/handwriting';
+  static const pathHandwritingDoc = '/handwriting-doc';
+  static const pathArMeasuring = '/ar-measure';
+  static const pathLibrary = '/library';
+  static const pathBookViewer = '/book-viewer';
+  static const pathLogin = '/login';
+  static const pathOtp = '/otp';
+  static const pathAdmin = '/admin';
+  static const pathSupportChat = '/support-chat';
+  static const pathImageViewer = '/image-viewer';
+  static const pathTagManager = '/tags';
+  static const pathReferenceDiary = '/reference';
+  static const pathVerifySignatures = '/verify-signatures';
+  static const pathCastReceiver = '/cast-receiver';
+  static const pathStickyNotes  = '/notes';
+  static const pathHelp         = '/help';
+  static const pathOnboarding   = '/welcome';
+}

@@ -1,0 +1,31 @@
+# Caddy block for downloads.interactpak.com.
+# Append to /etc/caddy/Caddyfile (or to /etc/caddy/sites/downloads.conf
+# if you've split sites into separate files).
+
+downloads.interactpak.com {
+    encode zstd gzip
+
+    # Static asset root — APKs, IPAs, manifests, the index page.
+    root * /var/www/downloads
+    file_server browse
+
+    # iOS OTA installs require an `application/octet-stream` content
+    # type for the .ipa and the right MIME for manifest.plist.
+    @ipa path *.ipa
+    header @ipa Content-Type application/octet-stream
+
+    @plist path *.plist
+    header @plist Content-Type application/xml
+
+    # Cache aggressively — the artefacts have hashes in their filenames
+    # and the download page is the only thing that changes between
+    # releases.
+    @assets path /assets/*
+    header @assets Cache-Control "public, max-age=2592000, immutable"
+
+    # Log to a per-host file so 'who's downloading' lookups don't have
+    # to grep the whole Caddy log.
+    log {
+        output file /var/log/caddy/downloads.log
+    }
+}

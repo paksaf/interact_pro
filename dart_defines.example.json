@@ -1,0 +1,21 @@
+{
+  "_comment_1": "Copy this file to dart_defines.json (already gitignored).",
+  "_comment_2": "Run with: flutter run --dart-define-from-file=dart_defines.json",
+  "_comment_3": "Server side: see server/translate-proxy/DEPLOY.md",
+
+  "DEEPSEEK_PROXY_URL": "https://signal.interactpak.com/translate",
+  "DEEPSEEK_API_KEY": "",
+  "_comment_app_token": "Set APP_TRANSLATE_TOKEN to the same value as APP_SHARED_SECRET in /etc/interact/translate.env on the proxy box. See server/translate-proxy/secrets.local.md.",
+  "APP_TRANSLATE_TOKEN": "",
+
+  "GOOGLE_WEB_CLIENT_ID": "REPLACE_ME.apps.googleusercontent.com",
+
+  "_comment_vision": "Vision LLM model name on DeepSeek. Override if your account uses a different SKU (e.g. deepseek-vl-7b-chat). Used by lib/features/vision/.",
+  "DEEPSEEK_VISION_MODEL": "deepseek-vl2",
+
+  "_comment_auth": "Base URL of the auth / sync / admin API. Defaults to pro.interactpak.com — the new subdomain set up by scripts/install-pro-caddy.sh. Until that backend ships, the app's 'Continue without an account' path keeps working locally.",
+  "AUTH_BASE_URL": "https://pro.interactpak.com",
+
+  "_comment_ai_secret": "INTERACT_PRO_AI_SECRET gates the Advanced OCR + multi-voice TTS Surya backend at pro.interactpak.com/api/ocr/* and /api/tts/*. WITHOUT THIS, the read-aloud feature falls back to local Tesseract OCR and degrades visibly (OCR errors, no word-timing for karaoke highlight). The secret lives on the VPS at /etc/interact/pro-ai.env. To bake it in, run scripts/bake-ai-secret.sh once — it pulls from the VPS and patches dart_defines.json. The build script will refuse to produce an APK when this value is empty.",
+  "INTERACT_PRO_AI_SECRET": ""
+}

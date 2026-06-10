@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Declares the search-intent schema for the Bravia/Fire TV mic button.
+     Paired with the `android.app.searchable` meta-data block in
+     AndroidManifest.xml. Without this XML file, Android refuses to
+     route ACTION_SEARCH to MainActivity even when the intent-filter
+     is present.
+
+     The strings reference the app's existing string resources so we
+     get the right label in every locale Pro already supports. If the
+     `app_name` / `voice_search_hint` keys are missing from a given
+     locale's strings.xml, the system falls back to defaults. -->
+<searchable xmlns:android="http://schemas.android.com/apk/res/android"
+    android:label="@string/app_name"
+    android:hint="@string/voice_search_hint"
+    android:voiceSearchMode="showVoiceSearchButton|launchRecognizer"
+    android:voiceLanguage="en-US"
+    android:voiceMaxResults="1" />

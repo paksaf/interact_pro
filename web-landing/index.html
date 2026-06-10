@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Interact Pro — PDF · Handwriting · Cast</title>
+  <meta name="description" content="Interact Pro — PDF library, handwriting annotation, LAN cast, multi-voice TTS. Android APK + iOS coming soon.">
+  <meta name="theme-color" content="#0d3b2c">
+  <!-- iOS user-agent → redirect to the iOS landing page where we explain
+       there's no direct install yet and capture an email for TestFlight. -->
+  <script>
+    (function () {
+      var ua = navigator.userAgent || "";
+      if (/iPhone|iPad|iPod/i.test(ua)) {
+        // Preserve any query string for tracking ("?utm_source=…").
+        window.location.replace("/ios.html" + window.location.search);
+      }
+    })();
+  </script>
+  <style>
+    :root { --bg:#0b0f14; --fg:#f5f6f8; --muted:#98a3b3; --accent:#11b981; --card:#131922; --line:#1f2735; }
+    body { margin:0; background:var(--bg); color:var(--fg); font-family:-apple-system,BlinkMacSystemFont,"Inter","Segoe UI",system-ui,sans-serif; -webkit-font-smoothing:antialiased; }
+    .wrap { max-width:680px; margin:0 auto; padding:48px 20px; text-align:center; }
+    h1 { font-size:32px; margin:0 0 8px; }
+    p.tag { color:var(--muted); font-size:15px; }
+    .cta { display:inline-block; margin-top:24px; background:var(--accent); color:#00231a; padding:14px 22px; border-radius:10px; font-weight:700; text-decoration:none; }
+    .pill { background:rgba(255,255,255,0.04); border:1px solid var(--line); padding:3px 10px; border-radius:999px; font-size:11px; color:var(--muted); margin-left:8px; }
+    .alts { margin-top:32px; }
+    .alts a { color:var(--accent); text-decoration:none; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Interact Pro</h1>
+    <p class="tag">PDF library · Handwriting annotation · LAN cast · TTS</p>
+    <a class="cta" href="/InteractPro.apk">Download for Android</a>
+    <div class="pill">v2.0.3 · 128 MB</div>
+    <div class="alts">
+      <p>On iPhone / iPad? <a href="/ios.html">See iOS distribution status</a>.</p>
+    </div>
+  </div>
+</body>
+</html>

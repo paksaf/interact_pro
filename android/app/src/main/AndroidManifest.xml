@@ -1,0 +1,295 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- ─── Network for Drive sync ──────────────────────────────── -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+
+    <!-- ─── LAN device discovery (mDNS / Bonjour) ───────────────── -->
+    <!-- Some routers + Android battery managers drop multicast packets
+         unless the app holds a MulticastLock. Acquired in code at the
+         start of LanDiscoveryService.startBrowsing(). -->
+    <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE" />
+
+    <!-- ─── Camera for scanner / signing on screen ─────────────── -->
+    <uses-permission android:name="android.permission.CAMERA" />
+
+    <!-- ─── Photo library access (Android 13+) ──────────────────── -->
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    <uses-permission android:name="android.permission.READ_MEDIA_VISUAL_USER_SELECTED" />
+
+    <!-- ─── Legacy storage (Android 12 and below) ──────────────── -->
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
+                     android:maxSdkVersion="32" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+                     android:maxSdkVersion="29" />
+
+    <!-- ─── Optional camera hardware (don't fail on devices w/o) ── -->
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+    <uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />
+    <uses-feature android:name="android.hardware.microphone" android:required="false" />
+
+    <!-- ─── ARCore (optional — feature gracefully degrades on
+              devices without Google Play Services for AR). ────── -->
+    <uses-feature android:name="android.hardware.camera.ar" android:required="false" />
+
+    <!-- ─── Android TV / Chromebook / Fire TV compatibility ────────
+         Android assumes touchscreen is required by default, which makes
+         the APK silently rejected by Android TV / Fire TV / Chrome OS in
+         tablet mode / docked phones with Bluetooth keyboards. Marking it
+         not-required lets the same APK install everywhere. The PDF
+         reader, library, OCR viewer, and book-flip work fine with
+         D-pad/remote/keyboard navigation — features that genuinely need
+         a touchscreen (signature pad, handwriting, scanner) just won't
+         be reachable. Marking leanback also not-required keeps phones
+         happy while announcing TV compatibility to Android TV launchers.
+    -->
+    <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
+    <uses-feature android:name="android.software.leanback" android:required="false" />
+    <uses-feature android:name="android.hardware.faketouch" android:required="false" />
+
+    <!-- ─── Background Drive sync ──────────────────────────────── -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+
+    <!-- ─── Notifications (Android 13+) ────────────────────────── -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <!-- ─── Microphone for STT (Pro feature) ───────────────────── -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+
+    <!-- ─── Billing (Pro/IAP) ──────────────────────────────────── -->
+    <uses-permission android:name="com.android.vending.BILLING" />
+
+    <queries>
+        <!-- Open external links from hotspots / Drive attachments -->
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="https" />
+        </intent>
+        <!-- flutter_tts: required on Android 11+ to enumerate TTS engines -->
+        <intent>
+            <action android:name="android.intent.action.TTS_SERVICE" />
+        </intent>
+        <package android:name="com.google.android.tts" />
+        <!-- speech_to_text: device speech recognizer discovery -->
+        <intent>
+            <action android:name="android.speech.RecognitionService" />
+        </intent>
+        <!-- Open-with handlers for share / open_filex -->
+        <intent>
+            <action android:name="android.intent.action.SEND" />
+            <data android:mimeType="*/*" />
+        </intent>
+    </queries>
+
+    <application
+        android:label="Interact Pro"
+        android:name="${applicationName}"
+        android:icon="@mipmap/ic_launcher"
+        android:banner="@drawable/ic_banner"
+        android:requestLegacyExternalStorage="true"
+        android:enableOnBackInvokedCallback="true"
+        android:resizeableActivity="true"
+        android:supportsPictureInPicture="false">
+
+        <!-- Google Cast: tells the SDK where to find the OptionsProvider
+             returning the receiver application id. Default Media Receiver
+             is used (id = "CC1AD845") so we can stream image URLs at it
+             without registering our own receiver. -->
+        <meta-data
+            android:name="com.google.android.gms.cast.framework.OPTIONS_PROVIDER_CLASS_NAME"
+            android:value="com.interactpak.interactpro.CastOptionsProvider" />
+
+        <!-- ARCore: "optional" means Google Play Services for AR is
+             installed on demand the first time the user enters the AR
+             measuring screen, rather than blocking install on devices
+             that don't support it. The non-AR features keep working
+             on every device. -->
+        <meta-data
+            android:name="com.google.ar.core"
+            android:value="optional" />
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:launchMode="singleTop"
+            android:taskAffinity=""
+            android:theme="@style/LaunchTheme"
+            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
+            android:hardwareAccelerated="true"
+            android:windowSoftInputMode="adjustResize"
+            android:resizeableActivity="false"
+            android:supportsPictureInPicture="false">
+            <!-- TV display hint (2026-05-12 — Sony Bravia VH21 was
+                 launching Pro in a 304×540 compact portrait window
+                 even with LEANBACK_LAUNCHER declared). Setting
+                 resizeableActivity=false at the activity level
+                 overrides the launcher's multi-window default and
+                 gives us the full 1920×1080 surface. Orientation is
+                 deliberately NOT set here — main.dart's runtime
+                 SystemChrome.setPreferredOrientations handles per-
+                 device locking once the activity gets the real
+                 fullscreen dimensions. Setting sensorLandscape in
+                 the manifest would force landscape on phones too,
+                 which breaks the existing portrait phone UX.
+
+                 The <layout> tag below sizes the activity if the
+                 launcher DOES try multi-window despite the above
+                 (defensive fallback for non-Sony TV launchers). -->
+            <layout android:defaultWidth="1920dp"
+                    android:defaultHeight="1080dp"
+                    android:gravity="center"
+                    android:minWidth="800dp"
+                    android:minHeight="500dp" />
+            <meta-data
+                android:name="io.flutter.embedding.android.NormalTheme"
+                android:resource="@style/NormalTheme" />
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <!-- Phones / tablets / Chromebooks discover the app here. -->
+                <category android:name="android.intent.category.LAUNCHER"/>
+                <!-- Android TV / Fire TV / Google TV launcher category.
+                     With leanback declared not-required above, the same
+                     activity is the entry point on every form factor. -->
+                <category android:name="android.intent.category.LEANBACK_LAUNCHER"/>
+            </intent-filter>
+            <!-- TV remote MIC button routing (task #267).
+                 Sony Bravia / Fire TV / Google TV remotes have a mic
+                 key that triggers Android's global voice service. The
+                 OS scans installed apps for these two intent filters
+                 to decide which apps the spoken phrase should be
+                 forwarded to. Without them, the mic just opens Google
+                 Assistant / Alexa and the user can't dictate into Pro.
+                 With them, "Hey Pro, find chapter 5" can route here
+                 and we read the spoken phrase via the existing
+                 speech_to_text plumbing the VoiceCommandButton uses.
+                 The receiving Dart side reads
+                 ACTION_VOICE_COMMAND + ACTION_SEARCH from MethodChannel
+                 launchExtras and feeds the query into VoiceIntentService. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VOICE_COMMAND" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.SEARCH" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.ASSIST" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+            <!-- searchable.xml declares the search-intent schema. The
+                 file is in res/xml/; we add it below if missing. -->
+            <meta-data
+                android:name="android.app.searchable"
+                android:resource="@xml/searchable" />
+            <meta-data
+                android:name="android.app.default_searchable"
+                android:value=".MainActivity" />
+            <!-- The leanback recommendations metadata isn't strictly
+                 required for the mic, but Android TV gives apps with it
+                 priority on the assistant's "which app to route to"
+                 picker — making Pro the default voice target after
+                 the user uses it once. -->
+            <meta-data
+                android:name="com.google.android.tv.search.target"
+                android:value="true" />
+            <!-- "Open with" PDF (file managers, downloads, mail attachments). -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:mimeType="application/pdf" />
+            </intent-filter>
+            <!-- "Open with" office / iWork — Pro appears in the picker
+                 so users can route Word/RTF/Excel/PPT/Pages/Numbers/Keynote
+                 through Pro for save-to-Drive + send-to-nearby-device
+                 + auto-handoff to their installed Office app. We
+                 don't preview these in-app; on launch we re-emit them
+                 to the system "Open with" via open_filex so the user's
+                 preferred Office app handles the actual rendering. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:mimeType="application/msword" />
+                <data android:mimeType="application/vnd.openxmlformats-officedocument.wordprocessingml.document" />
+                <data android:mimeType="application/rtf" />
+                <data android:mimeType="text/rtf" />
+                <data android:mimeType="application/vnd.oasis.opendocument.text" />
+                <data android:mimeType="application/vnd.ms-excel" />
+                <data android:mimeType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" />
+                <data android:mimeType="application/vnd.oasis.opendocument.spreadsheet" />
+                <data android:mimeType="application/vnd.ms-powerpoint" />
+                <data android:mimeType="application/vnd.openxmlformats-officedocument.presentationml.presentation" />
+                <data android:mimeType="application/vnd.oasis.opendocument.presentation" />
+                <data android:mimeType="application/vnd.apple.pages" />
+                <data android:mimeType="application/vnd.apple.numbers" />
+                <data android:mimeType="application/vnd.apple.keynote" />
+            </intent-filter>
+            <!-- "Share" sheet → Interact Pro.
+                 receive_sharing_intent reads the EXTRA_STREAM URI(s), resolves
+                 them via ContentResolver, hands paths to Dart.
+
+                 IMPORTANT: declare every mimeType you want to appear for in
+                 the Samsung / Pixel / OEM share sheet. Samsung's share UX is
+                 strict — without an image/* filter, photos won't list Interact
+                 Pro and the user falls through to "Cast" (Smart View). Adding
+                 image/*, video/*, text/plain (URLs) so the app shows up next
+                 to WhatsApp / Drive / etc. -->
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="application/pdf" />
+                <data android:mimeType="image/*" />
+                <data android:mimeType="video/*" />
+                <data android:mimeType="text/plain" />
+                <!-- Office / iWork — same set as the VIEW filter above
+                     so Pro shows up in the OS share sheet when a user
+                     shares a .docx from WhatsApp / Gmail / Files. -->
+                <data android:mimeType="application/msword" />
+                <data android:mimeType="application/vnd.openxmlformats-officedocument.wordprocessingml.document" />
+                <data android:mimeType="application/rtf" />
+                <data android:mimeType="text/rtf" />
+                <data android:mimeType="application/vnd.ms-excel" />
+                <data android:mimeType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" />
+                <data android:mimeType="application/vnd.ms-powerpoint" />
+                <data android:mimeType="application/vnd.openxmlformats-officedocument.presentationml.presentation" />
+                <data android:mimeType="application/vnd.apple.pages" />
+                <data android:mimeType="application/vnd.apple.numbers" />
+                <data android:mimeType="application/vnd.apple.keynote" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.SEND_MULTIPLE" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="application/pdf" />
+                <data android:mimeType="image/*" />
+                <data android:mimeType="video/*" />
+            </intent-filter>
+            <!-- Cross-app deep link: interactpro://open?path=...
+                                       interactpro://scan
+                                       interactpro://translate?text=... -->
+            <intent-filter android:autoVerify="false">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="interactpro" />
+            </intent-filter>
+            <!-- Universal/App Links from interactpak.com.
+                 Pair with /.well-known/assetlinks.json on the website to
+                 unlock auto-verification (autoVerify="true"). -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https"
+                      android:host="interactpak.com"
+                      android:pathPrefix="/open" />
+            </intent-filter>
+        </activity>
+
+        <meta-data
+            android:name="flutterEmbedding"
+            android:value="2" />
+    </application>
+</manifest>

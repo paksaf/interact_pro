@@ -1,0 +1,72 @@
+# Replace the existing pro.interactpak.com block in /etc/caddy/Caddyfile
+# with this version. The diff:
+#   • Adds reverse_proxy /api/* → 127.0.0.1:3050 (the Node.js api)
+#   • Keeps the existing file_server for everything else (so the
+#     APK / IPA / manifest.plist / version.json downloads still work)
+#   • Adds the right Content-Type headers for the binaries
+#
+# After replacing the block, run:
+#   sudo caddy validate --config /etc/caddy/Caddyfile
+#   sudo systemctl reload caddy
+#
+# Smoke-test:
+#   curl -i https://pro.interactpak.com/api/healthz
+#   # → HTTP/2 200, {"ok":true}
+#   curl -I https://pro.interactpak.com/InteractPro.apk
+#   # → HTTP/2 200, content-type: application/vnd.android.package-archive
+
+pro.interactpak.com {
+    encode zstd gzip
+
+    # /api/sync/upload accepts 100 MB PDF blobs. Caddy's `request_body`
+    # default upper bound is generous, but we set an explicit cap here
+    # to (a) document the contract and (b) reject larger uploads early
+    # rather than letting them stream all the way through. Must come
+    # BEFORE the generic /api/* handler — first matching block wins.
+    @sync_upload path /api/sync/upload
+    handle @sync_upload {
+        request_body {
+            max_size 110MB
+        }
+        reverse_proxy 127.0.0.1:3050 {
+            header_up X-Forwarded-For {http.request.header.X-Forwarded-For},{http.request.remote.host}
+            header_up X-Real-IP {http.request.remote.host}
+            # Long upload timeout — 100 MB at a 3G's 2 Mb/s = ~7 min.
+            transport http {
+                read_timeout 10m
+                write_timeout 10m
+            }
+        }
+    }
+
+    # API takes precedence over the file server. Order matters: Caddy
+    # evaluates handle blocks top-down.
+    handle /api/* {
+        reverse_proxy 127.0.0.1:3050 {
+            # Pass the real client IP through so rate-limiting in the
+            # Node app sees the visitor, not the loopback proxy.
+            header_up X-Forwarded-For {http.request.header.X-Forwarded-For},{http.request.remote.host}
+            header_up X-Real-IP {http.request.remote.host}
+        }
+    }
+
+    # Everything else → static binary distribution (existing behaviour).
+    handle {
+        root * /var/www/interactpro
+        file_server
+        @apk path *.apk
+        header @apk Content-Type application/vnd.android.package-archive
+        @plist path *.plist
+        header @plist Content-Type application/xml
+        # version.json doesn't need a special MIME — application/json is
+        # the default for .json files.
+    }
+
+    log {
+        output file /var/log/caddy/pro.interactpak.com.log {
+            roll_size 50mb
+            roll_keep 7
+        }
+        format json
+    }
+}

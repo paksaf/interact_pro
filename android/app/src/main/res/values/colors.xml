@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="ic_launcher_background">#0A2A40</color>
+    <!-- Android TV / Fire TV banner background. Same brand navy as the
+         launcher icon adaptive-background so the banner and the round
+         icon share a visual identity in launcher rows. -->
+    <color name="ic_banner_background">#0A2A40</color>
+</resources>

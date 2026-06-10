@@ -1,0 +1,252 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+	<dict>
+		<key>BGTaskSchedulerPermittedIdentifiers</key>
+		<array>
+			<string>be.tramckrijte.workmanagerExample.iOSBackgroundAppRefresh</string>
+		</array>
+		<key>CADisableMinimumFrameDurationOnPhone</key>
+		<true/>
+		<key>CFBundleDevelopmentRegion</key>
+		<string>$(DEVELOPMENT_LANGUAGE)</string>
+		<key>CFBundleDisplayName</key>
+		<string>Interact Pro</string>
+		<key>CFBundleDocumentTypes</key>
+		<array>
+			<dict>
+				<key>CFBundleTypeName</key>
+				<string>PDF Document</string>
+				<key>CFBundleTypeRole</key>
+				<string>Editor</string>
+				<key>LSHandlerRank</key>
+				<string>Alternate</string>
+				<key>LSItemContentTypes</key>
+				<array>
+					<string>com.adobe.pdf</string>
+				</array>
+			</dict>
+			<!-- Office / iWork documents — Pro accepts them via Share-
+			     to-Pro and "Open in" flows, but does NOT render them
+			     in-app. Once Pro receives the file we hand off to the
+			     user's installed Office / iWork app via the system
+			     "Open with" sheet (open_filex). Importing through Pro
+			     still gives the user save-to-Drive + send-to-nearby
+			     + add-to-bookshelf without going through the picker. -->
+			<dict>
+				<key>CFBundleTypeName</key>
+				<string>Microsoft Word Document</string>
+				<key>CFBundleTypeRole</key>
+				<string>Viewer</string>
+				<key>LSHandlerRank</key>
+				<string>Alternate</string>
+				<key>LSItemContentTypes</key>
+				<array>
+					<string>org.openxmlformats.wordprocessingml.document</string>
+					<string>com.microsoft.word.doc</string>
+					<string>public.rtf</string>
+				</array>
+			</dict>
+			<dict>
+				<key>CFBundleTypeName</key>
+				<string>Microsoft Excel Spreadsheet</string>
+				<key>CFBundleTypeRole</key>
+				<string>Viewer</string>
+				<key>LSHandlerRank</key>
+				<string>Alternate</string>
+				<key>LSItemContentTypes</key>
+				<array>
+					<string>org.openxmlformats.spreadsheetml.sheet</string>
+					<string>com.microsoft.excel.xls</string>
+				</array>
+			</dict>
+			<dict>
+				<key>CFBundleTypeName</key>
+				<string>Microsoft PowerPoint Presentation</string>
+				<key>CFBundleTypeRole</key>
+				<string>Viewer</string>
+				<key>LSHandlerRank</key>
+				<string>Alternate</string>
+				<key>LSItemContentTypes</key>
+				<array>
+					<string>org.openxmlformats.presentationml.presentation</string>
+					<string>com.microsoft.powerpoint.ppt</string>
+				</array>
+			</dict>
+			<dict>
+				<key>CFBundleTypeName</key>
+				<string>Apple iWork Document</string>
+				<key>CFBundleTypeRole</key>
+				<string>Viewer</string>
+				<key>LSHandlerRank</key>
+				<string>Alternate</string>
+				<key>LSItemContentTypes</key>
+				<array>
+					<string>com.apple.iwork.pages.pages</string>
+					<string>com.apple.iwork.numbers.numbers</string>
+					<string>com.apple.iwork.keynote.key</string>
+				</array>
+			</dict>
+		</array>
+		<key>CFBundleExecutable</key>
+		<string>$(EXECUTABLE_NAME)</string>
+		<key>CFBundleIdentifier</key>
+		<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+		<key>CFBundleInfoDictionaryVersion</key>
+		<string>6.0</string>
+		<key>CFBundleName</key>
+		<string>interact_pro</string>
+		<key>CFBundlePackageType</key>
+		<string>APPL</string>
+		<key>CFBundleShortVersionString</key>
+		<string>$(FLUTTER_BUILD_NAME)</string>
+		<key>CFBundleURLTypes</key>
+		<array>
+			<dict>
+				<key>CFBundleTypeRole</key>
+				<string>Editor</string>
+				<key>CFBundleURLName</key>
+				<string>com.interactpak.googlesignin</string>
+				<key>CFBundleURLSchemes</key>
+				<array>
+					<string>com.googleusercontent.apps.YOUR_CLIENT_ID</string>
+				</array>
+			</dict>
+			<dict>
+				<key>CFBundleTypeRole</key>
+				<string>Editor</string>
+				<key>CFBundleURLName</key>
+				<string>com.interactpak.deeplink</string>
+				<key>CFBundleURLSchemes</key>
+				<array>
+					<string>interactpro</string>
+				</array>
+			</dict>
+		</array>
+		<key>CFBundleVersion</key>
+		<string>$(FLUTTER_BUILD_NUMBER)</string>
+		<key>ITSAppUsesNonExemptEncryption</key>
+		<false/>
+		<key>LSApplicationQueriesSchemes</key>
+		<array>
+			<string>https</string>
+			<string>http</string>
+			<string>mailto</string>
+			<string>tel</string>
+		</array>
+		<key>LSRequiresIPhoneOS</key>
+		<true/>
+		<key>NSBonjourServices</key>
+		<array>
+			<!-- Canonical service type — every INTERACT app broadcasts here.
+			     Apps differentiate via the `app` TXT field. -->
+			<string>_interact._tcp</string>
+			<!-- Legacy type kept for one release so 2.0.x peers still discover
+			     us. Drop after 2026-08, alongside kLegacyLanServiceType. -->
+			<string>_interactpro._tcp</string>
+			<!-- AirPlay receiver discovery (Apple TVs, AirPlay 2 TVs).
+			     iOS uses these for AVRoutePickerView's device list. -->
+			<string>_airplay._tcp</string>
+			<string>_raop._tcp</string>
+			<!-- AirPrint / IPP printer discovery. WITHOUT these the
+			     iOS print sheet shows "No AirPrint Printers Found"
+			     even when a Wi-Fi printer (Brother, HP, Canon, Epson)
+			     is reachable on the same network — iOS only browses
+			     mDNS service types explicitly listed here. Brother
+			     printers in particular advertise:
+			       _pdl-datastream._tcp  → JetDirect / port 9100
+			       _ipp._tcp / _ipps._tcp → IPP over TCP / TLS
+			       _printer._tcp         → legacy LPR/LPD
+			     The _universal._sub variant is the AirPrint extension
+			     that surfaces them as "AirPrint" in the system print
+			     dialog. -->
+			<string>_ipp._tcp</string>
+			<string>_ipps._tcp</string>
+			<string>_pdl-datastream._tcp</string>
+			<string>_printer._tcp</string>
+			<string>_universal._sub._ipp._tcp</string>
+			<!-- Chromecast discovery (`_googlecast._tcp`) was here when
+			     `flutter_chrome_cast` was on the dependency list. The
+			     package is currently disabled, so the entry has been
+			     removed to keep the local-network permission prompt
+			     honest. Re-add when re-enabling the Cast SDK. -->
+		</array>
+		<key>NSCameraUsageDescription</key>
+		<string>Interact Pro uses the camera to scan documents, capture signatures, transcribe handwritten notes, and measure rooms with augmented reality.</string>
+		<!-- ARKit minimum capability hint. Devices without ARKit (older
+		     iPads, simulators) gracefully degrade — the AR measuring
+		     screen surfaces the unavailability message rather than
+		     blocking app install. -->
+		<key>UIRequiredDeviceCapabilities</key>
+		<array>
+			<string>arm64</string>
+		</array>
+		<key>NSLocalNetworkUsageDescription</key>
+		<string>Interact Pro discovers your other devices (iPhone, iPad, Mac), Apple TVs, AirPlay receivers, and Chromecasts on the same Wi-Fi so you can transfer documents and cast PDFs to a TV without uploading them anywhere.</string>
+		<key>NSMicrophoneUsageDescription</key>
+		<string>Interact Pro uses the microphone for voice dictation of annotations and notes (Pro feature).</string>
+		<key>NSPhotoLibraryAddUsageDescription</key>
+		<string>Interact Pro saves exported PDFs and signatures to your photo library when you choose to.</string>
+		<key>NSPhotoLibraryUsageDescription</key>
+		<string>Interact Pro needs access to your photos to import images into PDFs.</string>
+		<key>NSSpeechRecognitionUsageDescription</key>
+		<string>Interact Pro uses speech recognition to transcribe your voice into text annotations (Pro feature).</string>
+		<key>UIApplicationSupportsIndirectInputEvents</key>
+		<true/>
+		<key>UIBackgroundModes</key>
+		<array>
+			<string>fetch</string>
+			<string>processing</string>
+		</array>
+		<key>UILaunchStoryboardName</key>
+		<string>LaunchScreen</string>
+		<key>UIMainStoryboardFile</key>
+		<string>Main</string>
+		<key>UISupportedInterfaceOrientations</key>
+		<array>
+			<string>UIInterfaceOrientationPortrait</string>
+			<string>UIInterfaceOrientationLandscapeLeft</string>
+			<string>UIInterfaceOrientationLandscapeRight</string>
+		</array>
+		<key>UISupportedInterfaceOrientations~ipad</key>
+		<array>
+			<string>UIInterfaceOrientationPortrait</string>
+			<string>UIInterfaceOrientationPortraitUpsideDown</string>
+			<string>UIInterfaceOrientationLandscapeLeft</string>
+			<string>UIInterfaceOrientationLandscapeRight</string>
+		</array>
+		<!-- Multitasking on iPad: lets the user run Interact Pro in
+		     Slide Over, Split View, and Stage Manager. The default
+		     (omitting this key, which is the same as `false`) is what
+		     we want — `true` would force full-screen and break the
+		     iPadOS multitasking experience users expect. The key is
+		     declared explicitly here so future contributors don't
+		     accidentally flip it. -->
+		<key>UIRequiresFullScreen</key>
+		<false/>
+		<!-- Apple Pencil scribble on iPadOS: lets users handwrite into
+		     any text field across the app and have it auto-transcribed.
+		     Off by default (we DO want it for Interact Pro). -->
+		<key>UIPencilInteractions</key>
+		<dict>
+			<key>handlesScribbleInteraction</key>
+			<true/>
+		</dict>
+		<key>com.apple.developer.associated-domains</key>
+		<array>
+			<string>applinks:interactpak.com</string>
+		</array>
+		<key>UIStatusBarHidden</key>
+		<false/>
+		<!-- Files app integration. With both keys set, the app's
+		     Documents directory becomes visible under
+		     Files app → Browse → On My iPhone → Interact Pro.
+		     "Save a copy to device" from the print fallback sheet
+		     drops PDFs there. Other apps can also "Open in Interact
+		     Pro" from Files via LSSupportsOpeningDocumentsInPlace. -->
+		<key>UIFileSharingEnabled</key>
+		<true/>
+		<key>LSSupportsOpeningDocumentsInPlace</key>
+		<true/>
+	</dict>
+</plist>

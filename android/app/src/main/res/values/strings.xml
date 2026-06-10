@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- App-level strings referenced from AndroidManifest.xml + searchable.xml.
+         The Flutter side has its own l10n in lib/l10n/; this file is
+         for native Android resources only. -->
+    <string name="app_name">Interact Pro</string>
+    <string name="voice_search_hint">Speak a command — open scanner, find a book, jump to a page…</string>
+</resources>

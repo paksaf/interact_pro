@@ -1,0 +1,492 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0A2A1F">
+  <title>Downloads — Paksaf</title>
+  <meta name="description" content="Download Paksaf apps — Interact Pro PDF workstation and other tools.">
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="Paksaf — Downloads">
+  <meta property="og:description" content="Interact Pro: PDF · Scan · OCR · Translate. A mobile PDF workstation.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://downloads.interactpak.com/">
+  <meta property="og:image" content="https://downloads.interactpak.com/icon-fg.png">
+
+  <link rel="icon" type="image/png" href="icon-fg.png">
+
+  <style>
+    /* ───── Brand tokens ───── */
+    :root {
+      --gold: #C9A227;
+      --gold-soft: #FFE69A;
+      --gold-deep: #6E5300;
+      --green: #1B7A3E;
+      --green-soft: #C7EBD0;
+      --green-deep: #0A2A1F;
+      --olive: #8B7A1F;
+      --bg: #0A2A1F;
+      --bg-elev: #0F3A2A;
+      --bg-card: #133E2D;
+      --border: rgba(201, 162, 39, 0.18);
+      --border-strong: rgba(201, 162, 39, 0.45);
+      --text: #F5F1E0;
+      --text-dim: rgba(245, 241, 224, 0.68);
+      --text-faint: rgba(245, 241, 224, 0.42);
+      --shadow-card: 0 4px 24px rgba(0, 0, 0, 0.35), 0 1px 0 rgba(255, 255, 255, 0.04) inset;
+      --radius: 16px;
+      --radius-sm: 10px;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+
+    body {
+      font: 16px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(1200px 600px at 80% -10%, rgba(201, 162, 39, 0.08), transparent 60%),
+        radial-gradient(900px 500px at -10% 110%, rgba(27, 122, 62, 0.18), transparent 60%),
+        var(--bg);
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+    }
+
+    /* ───── Layout ───── */
+    .wrap {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 32px 20px 80px;
+    }
+
+    /* ───── Header ───── */
+    header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding-bottom: 24px;
+    }
+    .brand-mark {
+      width: 36px; height: 36px;
+      border-radius: 9px;
+      background: linear-gradient(135deg, var(--gold) 0%, var(--olive) 100%);
+      display: grid; place-items: center;
+      box-shadow: 0 2px 8px rgba(201, 162, 39, 0.35);
+      font-weight: 800;
+      color: #1A1300;
+      font-size: 18px;
+      letter-spacing: -0.5px;
+    }
+    .brand-name {
+      font-weight: 700;
+      font-size: 18px;
+      letter-spacing: 0.2px;
+    }
+    .brand-name span { color: var(--gold); }
+    nav.tiny {
+      margin-left: auto;
+      display: flex;
+      gap: 18px;
+      font-size: 14px;
+    }
+    nav.tiny a {
+      color: var(--text-dim);
+      text-decoration: none;
+      transition: color .15s;
+    }
+    nav.tiny a:hover { color: var(--gold); }
+
+    /* ───── Hero ───── */
+    .hero {
+      padding: 48px 0 40px;
+      text-align: center;
+    }
+    .hero h1 {
+      font-size: clamp(32px, 5vw, 48px);
+      line-height: 1.1;
+      margin: 0 0 14px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+    }
+    .hero h1 .accent { color: var(--gold); }
+    .hero .tagline {
+      font-size: clamp(15px, 2vw, 18px);
+      color: var(--text-dim);
+      margin: 0 auto;
+      max-width: 600px;
+    }
+    .hero .pill-row {
+      display: flex; flex-wrap: wrap; justify-content: center;
+      gap: 8px;
+      margin-top: 20px;
+    }
+    .pill {
+      padding: 5px 12px;
+      border-radius: 999px;
+      background: rgba(201, 162, 39, 0.10);
+      border: 1px solid var(--border);
+      color: var(--gold-soft);
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.4px;
+      text-transform: uppercase;
+    }
+
+    /* ───── App cards ───── */
+    section.apps {
+      margin-top: 48px;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 18px;
+    }
+    @media (min-width: 720px) {
+      section.apps { grid-template-columns: 1fr 1fr; }
+      section.apps .card.full { grid-column: 1 / -1; }
+    }
+
+    .card {
+      background: linear-gradient(180deg, var(--bg-card) 0%, var(--bg-elev) 100%);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+      box-shadow: var(--shadow-card);
+      position: relative;
+      overflow: hidden;
+      transition: border-color .2s, transform .2s;
+    }
+    .card:hover { border-color: var(--border-strong); }
+    .card.full:hover { transform: translateY(-1px); }
+
+    .card-head {
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+      margin-bottom: 14px;
+    }
+    .app-icon {
+      width: 56px; height: 56px;
+      border-radius: 14px;
+      flex: 0 0 56px;
+      background: linear-gradient(135deg, var(--green) 0%, var(--green-deep) 100%);
+      display: grid; place-items: center;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+      overflow: hidden;
+    }
+    .app-icon img {
+      width: 80%; height: 80%; object-fit: contain;
+    }
+    .app-icon.placeholder {
+      font-size: 26px;
+      color: var(--gold);
+      font-weight: 800;
+    }
+    .app-meta { flex: 1; min-width: 0; }
+    .app-meta h2 {
+      margin: 0 0 4px;
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: -0.2px;
+    }
+    .app-meta .sub {
+      margin: 0;
+      color: var(--text-dim);
+      font-size: 14px;
+    }
+    .badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.6px;
+      text-transform: uppercase;
+      vertical-align: middle;
+      margin-left: 6px;
+    }
+    .badge.live {
+      background: var(--green);
+      color: #fff;
+    }
+    .badge.soon {
+      background: rgba(245, 241, 224, 0.10);
+      color: var(--text-dim);
+      border: 1px solid var(--border);
+    }
+
+    .card-body {
+      color: var(--text-dim);
+      font-size: 14.5px;
+      line-height: 1.6;
+    }
+
+    /* Spec grid (version, size, sha) */
+    .specs {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 12px;
+      margin: 18px 0 4px;
+      padding: 14px;
+      background: rgba(0, 0, 0, 0.18);
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+    }
+    .spec dt {
+      font-size: 11px;
+      letter-spacing: 0.6px;
+      text-transform: uppercase;
+      color: var(--text-faint);
+      margin: 0 0 3px;
+    }
+    .spec dd {
+      margin: 0;
+      font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+      font-size: 12.5px;
+      color: var(--text);
+      word-break: break-all;
+    }
+
+    /* ───── Buttons ───── */
+    .actions {
+      display: flex; flex-wrap: wrap; gap: 10px;
+      margin-top: 18px;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 20px;
+      border-radius: 12px;
+      font-weight: 700;
+      font-size: 14px;
+      text-decoration: none;
+      border: 1px solid transparent;
+      transition: transform .12s, box-shadow .12s, background .15s;
+      cursor: pointer;
+    }
+    .btn:active { transform: translateY(1px); }
+    .btn.primary {
+      background: var(--gold);
+      color: #1A1300;
+      box-shadow: 0 4px 12px rgba(201, 162, 39, 0.28);
+    }
+    .btn.primary:hover {
+      background: #DBB232;
+      box-shadow: 0 6px 18px rgba(201, 162, 39, 0.42);
+    }
+    .btn.ghost {
+      background: transparent;
+      color: var(--text);
+      border-color: var(--border-strong);
+    }
+    .btn.ghost:hover {
+      background: rgba(201, 162, 39, 0.08);
+      border-color: var(--gold);
+    }
+    .btn.disabled {
+      background: rgba(245, 241, 224, 0.06);
+      color: var(--text-faint);
+      cursor: not-allowed;
+      pointer-events: none;
+      border-color: var(--border);
+    }
+
+    /* ───── Install note ───── */
+    details.install {
+      margin-top: 16px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 12px 14px;
+      background: rgba(0, 0, 0, 0.15);
+    }
+    details.install[open] { border-color: var(--border-strong); }
+    details.install summary {
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 13.5px;
+      color: var(--gold-soft);
+      list-style: none;
+      display: flex; align-items: center; gap: 8px;
+    }
+    details.install summary::-webkit-details-marker { display: none; }
+    details.install summary::before {
+      content: "›";
+      transition: transform .15s;
+      display: inline-block;
+      color: var(--gold);
+    }
+    details.install[open] summary::before { transform: rotate(90deg); }
+    details.install ol {
+      margin: 12px 0 4px;
+      padding-left: 22px;
+      color: var(--text-dim);
+      font-size: 13.5px;
+      line-height: 1.7;
+    }
+    details.install code {
+      background: rgba(201, 162, 39, 0.10);
+      padding: 1px 6px;
+      border-radius: 4px;
+      font-size: 12.5px;
+      color: var(--gold-soft);
+    }
+
+    /* ───── Footer ───── */
+    footer {
+      margin-top: 64px;
+      padding-top: 24px;
+      border-top: 1px solid var(--border);
+      color: var(--text-faint);
+      font-size: 13px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      justify-content: space-between;
+      align-items: center;
+    }
+    footer a { color: var(--gold); text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="brand-mark" aria-hidden="true">P</div>
+      <div class="brand-name">paksaf<span>.</span></div>
+      <nav class="tiny" aria-label="Site">
+        <a href="https://pro.interactpak.com/">Interact Pro</a>
+        <a href="mailto:interact@paksaf.com">Contact</a>
+      </nav>
+    </header>
+
+    <section class="hero">
+      <h1>Interact Pro <span class="accent">— PDF · Scan · OCR · Translate</span></h1>
+      <p class="tagline">A mobile PDF workstation. Read, edit, scan, sign, sync — all on your phone.</p>
+      <div class="pill-row">
+        <span class="pill">Read</span>
+        <span class="pill">Edit</span>
+        <span class="pill">Scan</span>
+        <span class="pill">Sign</span>
+        <span class="pill">Sync</span>
+      </div>
+    </section>
+
+    <section class="apps" aria-label="Available apps">
+
+      <!-- ─────────── Interact Pro (live) ─────────── -->
+      <article class="card full">
+        <div class="card-head">
+          <div class="app-icon">
+            <img src="icon-fg.png" alt="" loading="lazy">
+          </div>
+          <div class="app-meta">
+            <h2>Interact Pro <span class="badge live">Live</span></h2>
+            <p class="sub">Mobile PDF workstation — viewer, scanner, OCR, translator, signer, QR tools, image identifier.</p>
+          </div>
+        </div>
+
+        <div class="card-body">
+          <p>Open PDFs from anywhere — WhatsApp, Mail, Files, Drive — and read, annotate, sign, OCR, or translate them on the spot. Built for everyday document work, not occasional reading.</p>
+
+          <dl class="specs">
+            <div class="spec"><dt>Version</dt><dd>2.0.0+1</dd></div>
+            <div class="spec"><dt>Size</dt><dd>~ 78 MB</dd></div>
+            <div class="spec"><dt>Min Android</dt><dd>7.0 (API 24)</dd></div>
+            <div class="spec"><dt>Updated</dt><dd>2026-05-07</dd></div>
+            <div class="spec" style="grid-column: 1 / -1;">
+              <dt>SHA-256</dt>
+              <dd id="apk-sha">— compute on server, see footer note —</dd>
+            </div>
+          </dl>
+
+          <div class="actions">
+            <a class="btn primary" href="InteractPro.apk" download>
+              ⬇  Download APK
+            </a>
+            <a class="btn ghost" href="https://pro.interactpak.com/">Visit landing page</a>
+          </div>
+
+          <details class="install">
+            <summary>How to install on Android</summary>
+            <ol>
+              <li>Tap <strong>Download APK</strong> above. Your browser may warn that APKs aren't from Play Store — that's expected.</li>
+              <li>Open the downloaded <code>InteractPro.apk</code> from your Notifications shade or <code>Files → Downloads</code>.</li>
+              <li>If prompted, allow your browser/file manager to <em>install unknown apps</em> (one-time setting).</li>
+              <li>Tap <strong>Install</strong>. The app icon appears in your launcher.</li>
+              <li>Verify integrity (optional): <code>shasum -a 256 InteractPro.apk</code> should match the SHA-256 above.</li>
+            </ol>
+          </details>
+        </div>
+      </article>
+
+      <!-- ─────────── Rewards (placeholder) ─────────── -->
+      <article class="card">
+        <div class="card-head">
+          <div class="app-icon placeholder" aria-hidden="true">R</div>
+          <div class="app-meta">
+            <h2>Rewards <span class="badge soon">Coming soon</span></h2>
+            <p class="sub">USSD-based loyalty rewards.</p>
+          </div>
+        </div>
+        <div class="card-body">
+          <p>A lightweight rewards companion paired with paksaf's USSD service. Distribution details to follow.</p>
+          <div class="actions">
+            <span class="btn disabled" aria-disabled="true">Not available yet</span>
+          </div>
+        </div>
+      </article>
+
+      <!-- ─────────── Grower (placeholder) ─────────── -->
+      <article class="card">
+        <div class="card-head">
+          <div class="app-icon placeholder" aria-hidden="true">G</div>
+          <div class="app-meta">
+            <h2>Grower <span class="badge soon">Coming soon</span></h2>
+            <p class="sub">Field tools for growers — measuring, identification, logging.</p>
+          </div>
+        </div>
+        <div class="card-body">
+          <p>An on-device toolkit for plot measurement and crop identification. Distribution details to follow.</p>
+          <div class="actions">
+            <span class="btn disabled" aria-disabled="true">Not available yet</span>
+          </div>
+        </div>
+      </article>
+
+    </section>
+
+    <footer>
+      <div>© <span id="year">2026</span> paksaf · <a href="mailto:interact@paksaf.com">interact@paksaf.com</a></div>
+      <div>Built in Pakistan · Hosted on Hetzner</div>
+    </footer>
+  </div>
+
+  <script>
+    // Year auto-update
+    document.getElementById('year').textContent = new Date().getFullYear();
+
+    // Best-effort: pull SHA-256 + size from a sibling JSON if present.
+    // Drop a /apk-meta.json next to index.html with shape:
+    //   { "version": "2.0.0+1", "size_bytes": 81788928, "sha256": "abc123..." }
+    // and the page picks it up automatically. Silent if file's missing.
+    (async () => {
+      try {
+        const r = await fetch('apk-meta.json', { cache: 'no-cache' });
+        if (!r.ok) return;
+        const m = await r.json();
+        if (m.sha256) document.getElementById('apk-sha').textContent = m.sha256;
+        if (m.size_bytes) {
+          const mb = (m.size_bytes / (1024 * 1024)).toFixed(1);
+          const cell = document.querySelectorAll('.spec dd')[1];
+          if (cell) cell.textContent = `${mb} MB`;
+        }
+        if (m.version) {
+          const cell = document.querySelectorAll('.spec dd')[0];
+          if (cell) cell.textContent = m.version;
+        }
+      } catch (_) { /* ignore */ }
+    })();
+  </script>
+</body>
+</html>

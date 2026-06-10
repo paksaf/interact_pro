@@ -1,0 +1,30 @@
+; Weekly usage report sender for the translate proxy. Triggered by the
+; sibling .timer unit; runs once and exits.
+;
+; Install alongside interact-translate.service:
+;   sudo cp interact-usage-report.{service,timer} /etc/systemd/system/
+;   sudo systemctl daemon-reload
+;   sudo systemctl enable --now interact-usage-report.timer
+;
+; Logs:  journalctl -u interact-usage-report -n 50
+
+[Unit]
+Description=Interact Pro translate proxy — weekly usage email
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=interact
+Group=interact
+WorkingDirectory=/opt/interact/translate-proxy
+EnvironmentFile=/etc/interact/translate.env
+ExecStart=/usr/bin/node usage-report.js
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/var/log/interact
+
+[Install]
+WantedBy=multi-user.target

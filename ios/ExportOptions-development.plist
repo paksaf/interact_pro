@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  ExportOptions-development.plist — used by `flutter build ipa
+  --export-method development` so the produced IPA is signed for
+  devices REGISTERED in this Mac's Apple ID (the personal team
+  49NUXRMF2Z). Works without an Apple Developer Program enrolment.
+
+  CONSTRAINTS of the development export:
+    • Only iOS devices whose UDID has been added to Xcode under this
+      Apple ID can install — typically devices that have been plugged
+      into this Mac at least once with Developer Mode enabled.
+    • Free personal teams cap at ~10 device IDs.
+    • The signature expires 7 days after install. Re-install to renew.
+
+  For wider distribution to devices WE don't physically see, use the
+  "unsigned" build mode (build-and-upload.sh --ios-unsigned), which
+  ships an unsigned IPA the end user re-signs with their OWN Apple ID
+  using Sideloadly / AltStore.
+-->
+<plist version="1.0">
+<dict>
+    <key>method</key>
+    <string>development</string>
+    <key>teamID</key>
+    <string>49NUXRMF2Z</string>
+    <key>signingStyle</key>
+    <string>automatic</string>
+    <key>stripSwiftSymbols</key>
+    <true/>
+    <key>uploadBitcode</key>
+    <false/>
+    <key>uploadSymbols</key>
+    <false/>
+    <key>compileBitcode</key>
+    <false/>
+    <key>destination</key>
+    <string>export</string>
+</dict>
+</plist>

@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Android TV / Fire TV launcher banner — 320x180 landscape format.
+
+    The user's logo (Intearct_pro_1.PNG, copied into drawable-xhdpi/
+    ic_banner_logo.png) has a transparent background, so we composite
+    it on top of the brand navy via a layer-list. This avoids needing
+    a separately-flattened banner artwork.
+
+    The logo is centered with `gravity="center"` and the inset margins
+    keep it from touching the banner edges, leaving brand color
+    breathing room around it like Netflix / Disney+ tile banners.
+
+    To replace later with a properly-designed 320x180 flattened PNG:
+      1. Drop the new artwork at drawable-xhdpi/ic_banner.png
+         (and densify to xxhdpi / xxxhdpi for sharper TVs)
+      2. Update AndroidManifest's android:banner to "@drawable/ic_banner"
+         (already pointing here — no manifest change needed)
+      3. Delete this XML
+-->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Brand background that fills the entire banner area -->
+    <item>
+        <color android:color="@color/ic_banner_background" />
+    </item>
+    <!-- Logo centered with breathing room on all sides -->
+    <item
+        android:left="40dp"
+        android:right="40dp"
+        android:top="20dp"
+        android:bottom="20dp"
+        android:gravity="center">
+        <bitmap
+            android:src="@drawable/ic_banner_logo"
+            android:gravity="center" />
+    </item>
+</layer-list>

@@ -1,0 +1,54 @@
+# Dart / Flutter
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+build/
+.fvm/
+flutter_export_environment.sh
+pubspec.lock
+
+# IDE
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+
+# Coverage
+coverage/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# ─── Secrets — must NEVER ship in source ────────────────────────
+lib/keys.dart
+**/keys.dart
+*.env
+.env*
+dart_defines.json
+dart_defines.*.json
+!dart_defines.example.json
+android/app/google-services.json
+ios/Runner/GoogleService-Info.plist
+ios/firebase_app_id_file.json
+**/*.p12
+**/*.pem
+**/*.jks
+android/key.properties
+server/translate-proxy/secrets.local.md
+server/translate-proxy/node_modules/
+server/translate-proxy/package-lock.json
+
+# Build artifacts
+*.apk
+*.aab
+*.ipa
+
+# Generated code
+**/*.g.dart
+**/*.freezed.dart
+**/*.mocks.dart

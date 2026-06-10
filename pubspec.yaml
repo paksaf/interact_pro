@@ -1,0 +1,387 @@
+name: interact_pro
+description: Read. Edit. Scan. Sign. Sync. — A mobile PDF workstation.
+publish_to: 'none'
+version: 2.0.3+2015
+
+environment:
+  sdk: ">=3.3.0 <4.0.0"
+  flutter: ">=3.19.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  cupertino_icons: ^1.0.6
+
+  # ────────────────────────── State + DI ──────────────────────────
+  flutter_riverpod: ^2.5.1
+  riverpod_annotation: ^2.3.5
+
+  # ────────────────────────── Navigation ──────────────────────────
+  go_router: ^14.0.2
+
+  # ────────────────────────── Local storage ───────────────────────
+  # drift = type-safe SQL on top of sqflite, with codegen via build_runner.
+  # Picked over Isar/Hive after both showed maintenance issues + transitive
+  # conflicts (analyzer pin, package:js, etc.). drift uses the modern
+  # analyzer so it coexists cleanly with riverpod_lint.
+  drift: ^2.20.0
+  drift_flutter: ^0.2.0      # bundles sqlite3 + path_provider plumbing
+  shared_preferences: ^2.2.2
+  path_provider: ^2.1.3
+  path: ^1.9.0
+
+  # ────────────────────────── PDF render + edit ───────────────────
+  # Bumped from 25.x → 33.x in May 2026: the 25.x Android plugin
+  # referenced PluginRegistry.Registrar (Flutter v1 embedding API),
+  # which Flutter 3.29+ removed. 33.x uses the v2 embedding cleanly.
+  # Bumping the whole Syncfusion suite together since they share an
+  # internal protocol — also lets us drop the platform_interface
+  # dependency_override that was pinning 25.x to dodge a version
+  # skew (which now goes away on its own with everything aligned).
+  syncfusion_flutter_pdfviewer: ^33.2.4
+  syncfusion_flutter_pdf: ^33.2.4
+  syncfusion_flutter_signaturepad: ^33.2.4
+  syncfusion_flutter_core: ^33.2.4
+  pdfx: ^2.6.0
+  pdf: ^3.10.8
+  printing: ^5.12.0
+
+  # ────────────────────────── OCR ─────────────────────────────────
+  # Bumped from ^0.13.0 — older versions pulled ML Kit 6.x which pinned
+  # GoogleUtilities <8.0, conflicting with google_sign_in 6.x's transitive
+  # GoogleUtilities ~>8.0. 0.15.x uses ML Kit 8.x and aligns the version.
+  google_mlkit_text_recognition: ^0.15.0
+  # NOTE: flutter_tesseract_ocr removed — its bundled Gradle config still
+  # points at the long-dead jcenter.bintray.com Maven repo, which fails
+  # every transitive dependency lookup on Android. ML Kit covers every
+  # OCR path the app currently uses. If we ever need Tesseract for an
+  # offline language ML Kit doesn't support, fork the plugin and replace
+  # `jcenter()` with `mavenCentral()` + Google's repo first.
+
+  # ────────────────────────── Image identification ────────────────
+  # On-device image labeling (objects, scenes, indoor/outdoor cues).
+  # Pinned to 0.14.x: this is the line that uses google_mlkit_commons
+  # ^0.11.0 — the same constraint google_mlkit_text_recognition 0.15
+  # carries. Earlier 0.13.x pinned commons ^0.9.0 and conflicted.
+  google_mlkit_image_labeling: ^0.14.2
+  image_picker: ^1.1.2
+
+  # ────────────────────────── AR measurement ─────────────────────
+  # `ar_flutter_plugin` is currently DISABLED — it's been unmaintained
+  # since 2023 and clashes with every modern dep:
+  #   • permission_handler 11   — pinned to 10
+  #   • AGP 8 namespace req     — manifest only, no namespace block
+  #   • androidx.core 1.18      — needs API 31+ resources (lStar)
+  #   • support-lib 27 in AAR   — duplicates androidx.core classes
+  #   • Cocoapods 1.16          — pulls ancient GoogleToolboxForMac 2.x
+  #     vs. modern ML Kit's GoogleToolboxForMac 4.x — irreconcilable
+  #
+  # Each of those is fixable individually but together they make every
+  # iOS / Android build a series of workarounds. The AR measuring
+  # screen is a v1.5 nice-to-have; the rest of the app is in v1.0
+  # ship-blocking territory. Disabled until either a maintained fork
+  # appears (`ar_flutter_plugin_2`, `ar_flutter_reloaded`) or someone
+  # ports the screen to native ARKit/ARCore via direct platform
+  # channels.
+  #
+  # ar_flutter_plugin: ^0.7.3
+  vector_math: ^2.1.4
+
+  # ────────────────────────── Handwriting (digital ink) ───────────
+  # Captures live touchscreen / Apple Pencil strokes and transcribes
+  # them. Different from text recognition (which works on rasterised
+  # images) — this consumes typed Stroke objects directly.
+  #
+  # Models are NOT bundled; the first recognition for a given language
+  # downloads ~10-20MB via DigitalInkRecognizerModelManager. We expose
+  # this in the UI so users see what's happening on their data plan.
+  #
+  # Pinned to 0.14.x to share `google_mlkit_commons ^0.11.0` with the
+  # text recognizer (0.15) and image labeller (0.14.2) — keeps a single
+  # native MLKitCore version on the iOS pod side.
+  google_mlkit_digital_ink_recognition: ^0.14.0
+
+  # ────────────────────────── Scanner ─────────────────────────────
+  cunning_document_scanner: ^1.2.0
+  camera: ^0.10.5+9
+  image: ^4.1.7
+
+  # ────────────────────────── Code scanner (QR / barcode) ─────────
+  # Live camera preview + ML Kit barcode detection. v7+ aligns with
+  # GoogleMLKit/BarcodeScanning 8.x so the native pod is compatible
+  # with text_recognition 0.15.x and image_labeling 0.14.x (both pin
+  # MLKitCore 9.x). v5.x was forcing MLKitCore 6.x and conflicting.
+  mobile_scanner: ^7.0.0
+  # Code generation: QR via qr_flutter, 1D barcodes via barcode_widget.
+  # Both render as Flutter widgets — we capture them to PNG via
+  # RepaintBoundary so the result can be saved or used as a PDF stamp.
+  qr_flutter: ^4.1.0
+  barcode_widget: ^2.0.4
+
+  # ────────────────────────── Signature ───────────────────────────
+  signature: ^5.4.1
+
+  # ────────────────────────── Voice capture (sticky notes) ────────
+  # `record` for actual audio capture in sticky-notes (task #260).
+  # `speech_to_text` is already a dep but it's transcription-only; for
+  # voice notes we need raw audio recording. record's 5.x API is what
+  # the AudioRecorder() + RecordConfig() call sites in
+  # features/sticky_notes/presentation/screens/note_capture_sheet.dart
+  # expect.
+  record: ^5.1.0
+
+  # ────────────────────────── Google Drive ────────────────────────
+  google_sign_in: ^6.2.1
+  googleapis: ^13.1.0
+  googleapis_auth: ^1.4.1
+  extension_google_sign_in_as_googleapis_auth: ^2.0.12
+
+  # ────────────────────────── Background work ─────────────────────
+  # workmanager bumped 0.5 → 0.6: 0.5.x's Android plugin used the v1
+  # embedding API (PluginRegistry.Registrar) which Flutter 3.29+ removed.
+  # 0.6+ uses the v2 embedding cleanly. Public Dart API (executeTask,
+  # registerPeriodicTask, Constraints, ExistingWorkPolicy) is unchanged.
+  workmanager: ^0.6.0
+  connectivity_plus: ^6.0.3
+
+  # ────────────────────────── System ──────────────────────────────
+  permission_handler: ^11.3.1
+  file_picker: ^8.0.3
+  share_plus: ^12.0.2  # major bump from 9.x — was pinning web 0.5, drift needs 1.0
+  url_launcher: ^6.2.6
+  open_filex: ^4.4.0
+  # Cross-app deep link receiver — pairs with the interactpro:// URL scheme
+  # registered in AndroidManifest + Info.plist.
+  app_links: ^6.3.2
+  # Receive shared files (PDFs from WhatsApp / Mail / Files / etc).
+  # app_links handles URL deep links; this handles the *file content*
+  # path where the OS hands us a content:// or file:// URI for actual
+  # bytes we need to import into the app's PDF folder.
+  receive_sharing_intent: ^1.8.1
+
+  # ────────────────────────── LAN cross-device sharing ────────────────────
+  # mDNS / Bonjour broadcaster + browser. Each Interact Pro instance
+  # advertises an `_interact._tcp.local.` service so peers on the same
+  # Wi-Fi find it without a server. Renamed 2026-05-08 from `_interactpro._tcp`
+  # to `_interact._tcp` so the same type covers Sahulat / FleetOps / etc.;
+  # legacy type still broadcast for one release.
+  bonsoir: ^5.1.10
+  # DLNA / UPnP — added 2026-05-16 (Track 1, public-feature LAN rework).
+  # Bonsoir alone fails on routers that block multicast (224.0.0.251)
+  # and on Android 11+ devices where the multicast-permission gate
+  # blocks discovery for sideloaded apps. DLNA uses SSDP discovery
+  # (different multicast address + UDP port) and is more widely
+  # supported by router firmware. Most smart TVs already speak DLNA
+  # natively so we get a much broader compatibility surface without
+  # needing the user to install anything extra.
+  # See memory: interact_pro_strategic_roadmap_2026-05-16.md (Track 1).
+  media_cast_dlna: ^0.3.1
+  # In-process HTTPS server used to receive document transfers from peers
+  # we've paired with. Routed via shelf_router; HMAC-signed requests only;
+  # TLS via self-signed cert generated at first launch + fingerprint pinned
+  # per pair (see lib/features/lan/data/lan_tls.dart).
+  shelf: ^1.4.1
+  shelf_router: ^1.1.4
+  # Reads the device's current Wi-Fi info (SSID, local IP) for the mDNS
+  # TXT record so peers can connect over IPv4 directly. Also used by the
+  # cast service to build the https://<phone-ip>:<port>/cast/page/N.png
+  # URL we hand to Chromecast receivers.
+  network_info_plus: ^6.0.0
+  # Self-signed TLS cert generation for the LAN server. basic_utils builds
+  # an X.509 cert + RSA keypair from pure Dart so we don't shell out to
+  # openssl (which isn't on iOS / Android anyway). Pinned ^5.x because the
+  # 6.x line bumped its min Dart SDK above what Flutter 3.19 ships.
+  basic_utils: ^5.7.0
+
+  # ────────────────────────── Cryptographic signatures ─────────────────
+  # Ed25519 signing for the stepwise approval workflow (task #3). Each
+  # device generates a keypair on first launch; private key lives in
+  # flutter_secure_storage (already a dep), public key is exchanged
+  # during LAN pairing. Signatures are stored in the new `signatures`
+  # drift table (schema v5) + as a sidecar JSON alongside the PDF for
+  # portability when the doc moves between devices.
+  #
+  # Picked `cryptography` over `pointycastle` because the API is
+  # algorithm-specific (Ed25519() class) rather than the BC-style
+  # cipher-suite-string ceremony pointycastle wants. The `crypto`
+  # package (already a direct dep below, line ~253) provides SHA-256
+  # for the PDF hashing; we just reuse it.
+  cryptography: ^2.7.0
+
+  # ────────────────────────── Cast to TV (Chromecast) ─────────────────
+  # `flutter_chrome_cast` is currently DISABLED — its 0.0.x API has
+  # churned across point releases and the symbols it exports vary
+  # (GoogleCastDiscoveryManager / GoogleCastSessionManager /
+  # GoogleCastMediaInformation in some versions, completely different
+  # names in others). Until someone hand-verifies the surface for the
+  # specific version pub resolves to, we ship Cast support via the OS
+  # share sheet only — that route already lets users pick AirPlay
+  # (iOS) and any installed Cast target (Android) without an SDK
+  # dependency.
+  #
+  # To re-enable: uncomment, run `flutter pub get`, open the package's
+  # public barrel file under ~/.pub-cache/, map its actual exports onto
+  # the `_ensureDiscoveryStarted / _startSession / _loadPage /
+  # _endSession` methods at the bottom of `chromecast_cast_service.dart`,
+  # and put `chromecastCastServiceProvider` back in the composite at
+  # `lib/features/casting/presentation/providers/cast_provider.dart`.
+  # flutter_chrome_cast: ^0.0.6
+
+  # ────────────────────────── Pro tier deps ──────────────────────
+  # In-app purchases for unlocking Pro
+  in_app_purchase: ^3.2.0
+  # Voice features.
+  # speech_to_text bumped 6.6.2 → 7.0.0+: 6.x's Android plugin used
+  # PluginRegistry.Registrar (Flutter v1 embedding API) which Flutter
+  # 3.29+ removed, breaking the Android Kotlin compile. 7.x uses the v2
+  # embedding cleanly.
+  flutter_tts: ^4.0.2
+  # audioplayers — plays WAV bytes returned by the Piper backend
+  # (/api/tts/speak). 6.x is the current line aligned with Flutter 3.29+.
+  audioplayers: ^6.1.0
+  speech_to_text: ^7.0.0
+  # Translation API
+  http: ^1.2.1
+  # Optional secure storage for DeepSeek API key (if stored client-side
+  # — but proxying through your own backend is recommended for prod)
+  flutter_secure_storage: ^9.2.2
+
+  # ────────────────────────── App version check ───────────────────
+  # Reads the running build's version from native (Info.plist on iOS,
+  # build.gradle on Android) so the update banner can compare it
+  # against /api/version.
+  package_info_plus: ^8.0.0
+
+  # ────────────────────────── Local notifications ─────────────────
+  # Posts an Android / iOS / macOS notification when a peer pushes a
+  # file via the LAN cast feature while the app is backgrounded.
+  # Tapping the notification reopens the app and routes to the
+  # received file's viewer (handled in core/notifications/).
+  flutter_local_notifications: ^18.0.1
+
+  # ────────────────────────── Utility ─────────────────────────────
+  freezed_annotation: ^2.4.1
+  json_annotation: ^4.9.0
+  uuid: ^4.4.0
+  # Bumped 0.19 → 0.20.2 because flutter_localizations from the Flutter
+  # SDK pins intl to 0.20.2 — pub solver can't reconcile a ^0.19 ceiling
+  # with that. 0.20.x is API-compatible with our DateFormat usage; only
+  # internal locale data and a few obscure number-formatter edge cases
+  # changed.
+  intl: ^0.20.2
+  logger: ^2.2.0
+  crypto: ^3.0.3
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.2
+  build_runner: ^2.4.9
+  # Codegen toolchain — these versions all target `analyzer ^7.x`, which
+  # matches Dart 3.11 and silences the "analyzer language version 3.4"
+  # warning we'd see on older releases.
+  freezed: ^2.5.7
+  json_serializable: ^6.9.0
+  riverpod_generator: ^2.6.4
+  drift_dev: ^2.20.0
+  # ────────────────────────── App icon + splash ──────────────────
+  # Both run as dev tools (`dart run flutter_launcher_icons` and
+  # `dart run flutter_native_splash:create`) to generate every
+  # required size for Android / iOS from a single 1024x1024 source.
+  flutter_launcher_icons: ^0.14.1
+  flutter_native_splash: ^2.4.0
+
+# ───────────────────────────── flutter_launcher_icons config ─────
+# Source PNG must be 1024x1024. Re-run `dart run flutter_launcher_icons`
+# after replacing assets/icon/icon.png to refresh every platform size.
+flutter_launcher_icons:
+  android: "ic_launcher"        # produces res/mipmap-*/ic_launcher.png
+  ios: true                     # produces all 18 iOS sizes from the single source
+  remove_alpha_ios: true        # App Store rejects icons with alpha on iOS
+  image_path: "assets/icon/icon.png"
+  min_sdk_android: 21
+  # Adaptive icon (Android 8+): launcher applies a circular/squircle
+  # mask over the foreground, against this background colour. The teal
+  # matches the dominant tone of the icon so the masked corners blend.
+  adaptive_icon_background: "#0A2A40"
+  adaptive_icon_foreground: "assets/icon/icon-fg.png"
+  web:
+    generate: false
+  windows:
+    generate: false
+  macos:
+    generate: false
+
+# ───────────────────────────── flutter_native_splash config ──────
+# Splash screen shown briefly during cold launch while the Flutter
+# engine boots. Keep it minimal — same icon centered on the dark
+# brand background — so it feels like a continuation of the icon
+# rather than a separate screen.
+flutter_native_splash:
+  # Native splash shown during engine boot. Background uses the brand's
+  # dark green so the transition into the in-app animated splash (which
+  # uses the same colour) is seamless — no flash between the two.
+  color: "#0A2A1F"
+  image: "assets/icon/icon-fg.png"
+  android_12:
+    image: "assets/icon/icon-fg.png"
+    icon_background_color: "#0A2A1F"
+  android: true
+  ios: true
+  web: false
+  # NOTE: `custom_lint` and `riverpod_lint` were removed because their
+  # current versions on pub pin `analyzer <6.5`, which is too old for
+  # Dart 3.11 — `drift_dev` crashes with a null-cast in its analyzer
+  # introspection. Re-add them when a release lands that targets
+  # `analyzer ^7.x` or later. They're editor warnings only — nothing
+  # at compile/runtime depends on them.
+
+flutter:
+  uses-material-design: true
+  # Generates lib/l10n/app_localizations.dart from lib/l10n/*.arb files.
+  # Config lives in l10n.yaml at the project root.
+  generate: true
+  assets:
+    - assets/stamps/
+    - assets/signatures/
+    - assets/fonts/
+    # Page-flip sound effect for BookViewer (#252). page_flip.wav
+    # was generated 2026-05-20 via the scipy noise+decaying-tone
+    # recipe (see assets/sfx/README.md). If the asset is absent the
+    # `_playFlipSfx()` catch block silently swallows so navigation
+    # never breaks on missing audio.
+    - assets/sfx/
+# ────────────────────────── Dependency overrides ──────────────────────────
+# `speech_to_text` requires `js ^0.7.1`; older releases of
+# `flutter_secure_storage_web` require `js ^0.6.3`. Both packages only use
+# `js` on Flutter Web — on Android/iOS this conflict is theoretical, but pub
+# still refuses to resolve. Pinning js globally to ^0.7.1 is safe for
+# mobile-only builds and unblocks the solver.
+dependency_overrides:
+  js: ^0.7.1
+  # ar_flutter_plugin 0.7.x pins permission_handler ^10.1.0, but the rest
+  # of the app already uses ^11.3.1 (OCR / scanner / microphone code).
+  # The 10 → 11 cut was mostly native-side internal cleanup — the Dart
+  # API surface (Permission.camera, .request(), PermissionStatus enums)
+  # that ar_flutter_plugin actually consumes is identical between 10 and
+  # 11, so pinning the project to 11.3.1 across the board is safe.
+  #
+  # If a future ar_flutter_plugin release lifts its own ceiling, drop
+  # this line. If it ever starts USING a permission_handler 11-only
+  # API, the resolver will flag it; then we can move forward without
+  # the override.
+  permission_handler: ^11.3.1
+  # record 5.2.x pulls in record_linux 0.7.2 (publish lag in the
+  # record-monorepo). 0.7.2 doesn't implement startStream() that the
+  # 5.2.x record_platform_interface added, so the Dart compiler bails
+  # even on Android-only builds because Dart resolves all platform
+  # variants in the kernel snapshot. record_linux ^1.3.0 has the
+  # missing method. Drop this override when record cuts a clean 5.x
+  # patch (or when we move to record 6.x).
+  record_linux: ^1.3.0
+  # NOTE: the previous syncfusion_pdfviewer_platform_interface: 25.2.7
+  # pin was removed when the rest of Syncfusion bumped 25 → 33. The whole
+  # suite is aligned at 33.x now, so the platform-interface skew that
+  # caused the blank-PDF UnimplementedError no longer exists.

@@ -1,0 +1,40 @@
+[Unit]
+Description=Interact Pro — pro.interactpak.com auth + admin + version API
+After=network.target postgresql.service
+Wants=postgresql.service
+
+[Service]
+Type=simple
+User=interact
+Group=interact
+WorkingDirectory=/opt/interact/pro-api
+EnvironmentFile=/etc/interact/pro-api.env
+ExecStart=/usr/bin/node index.js
+Restart=on-failure
+RestartSec=5
+
+# Lock the unit down. The service only needs to read its own dir, the
+# env file, and write to /var/log/interact + the sync storage roots.
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+# /var/www/pro/storage — per-user PDF blobs (task #158, /api/sync/*).
+# /var/www/pro/sync-tmp — multer's temp landing pad (same FS as storage
+# so the post-upload rename is atomic). NOT under /tmp or /var/tmp —
+# PrivateTmp=true above auto-mounts those, and adding either as a
+# ReadWritePath crashes the unit with status=226/NAMESPACE.
+ReadWritePaths=/var/log/interact /var/www/pro/storage /var/www/pro/sync-tmp
+NoNewPrivileges=true
+
+# Bind to IPv4 only (Caddy proxies localhost). No public listener.
+RestrictAddressFamilies=AF_UNIX AF_INET
+
+# Log to journald. Caddy already logs request lines; we log app-level
+# events (OTP delivery, audit writes, errors).
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=interact-pro-api
+
+[Install]
+WantedBy=multi-user.target

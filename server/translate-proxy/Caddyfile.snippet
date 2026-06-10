@@ -1,0 +1,29 @@
+# Caddy snippet — drop into your existing Caddyfile or include from
+# /etc/caddy/sites/api.interactpak.com.conf
+#
+# Caddy auto-provisions a Let's Encrypt cert for the host name and
+# reverse-proxies POST /translate to the Node service on 127.0.0.1:8081.
+
+api.interactpak.com {
+    encode zstd gzip
+
+    # The healthcheck path is unauthenticated on purpose so an external
+    # uptime monitor (UptimeRobot, etc.) can probe it without secrets.
+    handle_path /healthz {
+        reverse_proxy 127.0.0.1:8081
+    }
+
+    handle /translate {
+        # If you want Caddy to enforce the shared-secret too (defense in
+        # depth), uncomment these two lines:
+        # @badtoken not header X-App-Token "{$APP_SHARED_SECRET}"
+        # respond @badtoken 401
+
+        reverse_proxy 127.0.0.1:8081 {
+            header_up X-Forwarded-For {remote_host}
+        }
+    }
+
+    # Anything else gets a flat 404 so we don't leak that this is Node.
+    respond 404
+}

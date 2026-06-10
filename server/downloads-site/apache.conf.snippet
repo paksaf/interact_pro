@@ -1,0 +1,37 @@
+# Apache snippet for adding InteractPro to the existing
+# downloads.interactpak.com vhost on 157.90.191.190.
+#
+# Per the browser-based recon: that host runs Apache + name-based vhosting,
+# and downloads.interactpak.com is the existing INTERACT app landing page
+# (listing Sahulat, Rewards, LeathX, BVI, FleetOps, Grower OS, etc.).
+# We co-host InteractPro under /interactpro/ rather than touching DNS.
+#
+# Drop the block below INSIDE the existing <VirtualHost ...> for
+# downloads.interactpak.com (likely in
+# /etc/apache2/sites-available/downloads.interactpak.com.conf or similar).
+
+Alias /interactpro /var/www/downloads/interactpro
+
+<Directory /var/www/downloads/interactpro>
+    Require all granted
+    Options -Indexes -ExecCGI
+    AllowOverride None
+    DirectoryIndex index.html
+
+    # Force the right MIME on .apk so Android browsers download + install
+    # rather than rendering bytes inline. (Apache's default mime.types
+    # may not include this on every distro.)
+    AddType application/vnd.android.package-archive .apk
+    AddType application/xml .plist
+
+    # Aggressive caching for everything except the index page — APKs
+    # have versioned filenames so they're effectively immutable.
+    <FilesMatch "\.apk$">
+        Header set Cache-Control "public, max-age=2592000"
+        Header set Content-Disposition "attachment; filename=\"InteractPro.apk\""
+    </FilesMatch>
+</Directory>
+
+# Optional: redirect /interactpro (no slash) → /interactpro/ so the
+# DirectoryIndex serves the landing page cleanly.
+RedirectMatch ^/interactpro$ /interactpro/

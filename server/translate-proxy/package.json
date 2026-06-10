@@ -1,0 +1,21 @@
+{
+  "name": "interact-translate-proxy",
+  "version": "1.0.0",
+  "description": "Thin DeepSeek proxy for the Interact Pro mobile app. Keeps the API key server-side and adds rate limiting + per-app shared-secret auth.",
+  "private": true,
+  "main": "index.js",
+  "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node --watch index.js",
+    "usage-report": "node usage-report.js"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "express-rate-limit": "^7.4.1",
+    "morgan": "^1.10.0"
+  }
+}
