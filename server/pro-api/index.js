@@ -339,6 +339,20 @@ app.post('/api/iap/verify', requireAuth, async (req, res) => {
     [req.user.id, platform, productId, transactionId, serverVerificationData],
   );
 
+  // ── Anti-replay #1 (2026-06-10 audit): if the conflict row belongs to a
+  // DIFFERENT account, this is someone re-submitting another user's
+  // receipt. Refuse before burning a verification call. Same-user
+  // resubmits (client retries, restore-purchases) pass through.
+  const owner = await query(
+    `SELECT user_id FROM iap_purchases
+      WHERE platform = $1 AND transaction_id = $2`,
+    [platform, transactionId],
+  );
+  if (owner.rows[0] && owner.rows[0].user_id !== req.user.id) {
+    await audit(req.user.id, 'iap.replay_blocked', transactionId, { platform });
+    return res.status(409).json({ ok: false, error: 'receipt-already-redeemed' });
+  }
+
   // 2. Validate with the platform's server-side API.
   const result = platform === 'ios'
     ? await verifyApple({ productId, serverVerificationData })
@@ -371,6 +385,37 @@ app.post('/api/iap/verify', requireAuth, async (req, res) => {
       });
     }
     return res.status(402).json({ ok: false, error: result.error });
+  }
+
+  // ── Anti-replay #2 (2026-06-10 audit): claim the CANONICAL transaction
+  // id that came back from Apple/Google (NOT the client-supplied
+  // transactionId, which a forger can vary to dodge the row-level
+  // uniqueness). The partial unique index on (platform, canonical_txn)
+  // makes this race-safe: the second claimant — even with a different
+  // transaction_id — hits 23505 and is refused.
+  const canon = result.canonicalTxn ?? transactionId;
+  try {
+    await query(
+      `UPDATE iap_purchases SET canonical_txn = $1
+        WHERE platform = $2 AND transaction_id = $3
+          AND (canonical_txn IS NULL OR canonical_txn = $1)`,
+      [canon, platform, transactionId],
+    );
+  } catch (e) {
+    if (e.code === '23505') {
+      await audit(req.user.id, 'iap.replay_blocked_canonical', canon, { platform });
+      return res.status(409).json({ ok: false, error: 'receipt-already-redeemed' });
+    }
+    throw e;
+  }
+  const canonOwner = await query(
+    `SELECT user_id FROM iap_purchases
+      WHERE platform = $1 AND canonical_txn = $2`,
+    [platform, canon],
+  );
+  if (canonOwner.rows[0] && canonOwner.rows[0].user_id !== req.user.id) {
+    await audit(req.user.id, 'iap.replay_blocked_canonical', canon, { platform });
+    return res.status(409).json({ ok: false, error: 'receipt-already-redeemed' });
   }
 
   // 4. Validation passed — flip the user's pro_active and stash the

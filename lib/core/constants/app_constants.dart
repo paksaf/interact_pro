@@ -15,9 +15,16 @@ class AppConstants {
   static const String thumbnailsFolder = 'thumbnails';
 
   // ── Google Drive ───────────────────────────────────────────────────────────
-  /// PRD GDR-01: only request `drive.file` so we touch nothing the app
-  /// didn't create. Keeps the OAuth consent screen clean and reduces risk.
+  /// GDR-01 REVISED 2026-06-10 (product decision): TV must browse ALL the
+  /// user's Drive PDFs, not just app-created ones. `drive.readonly` grants
+  /// read of everything; `drive.file` stays for uploads/backups (write to
+  /// app-created files). Note: drive.readonly is a Google "restricted"
+  /// scope — unverified clients show an "unverified app" consent warning
+  /// and are capped at 100 users. Acceptable for internal distribution;
+  /// requires Google verification before public release.
+  /// Existing sign-ins must DISCONNECT + RE-PAIR to pick up the new scope.
   static const List<String> driveScopes = <String>[
+    'https://www.googleapis.com/auth/drive.readonly',
     'https://www.googleapis.com/auth/drive.file',
   ];
   static const String driveBackupFolderName = 'Interact Pro';

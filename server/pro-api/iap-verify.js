@@ -86,11 +86,17 @@ function interpretAppleResponse(json, productId) {
   // tier could be replayed to claim the $19.99 tier.
   const items =
     json.latest_receipt_info ?? json.receipt?.in_app ?? [];
-  const match = items.some((item) => item.product_id === productId);
+  const match = items.find((item) => item.product_id === productId);
   if (!match) {
     return { ok: false, verifier: 'apple', error: 'product-id-mismatch' };
   }
-  return { ok: true, verifier: 'apple' };
+  // Canonical transaction id FROM THE VERIFIED RECEIPT (not the
+  // client-supplied transactionId, which can be forged to dodge the
+  // uniqueness index). original_transaction_id is stable across
+  // restores; transaction_id covers the rare receipts without it.
+  const canonicalTxn =
+    match.original_transaction_id ?? match.transaction_id ?? null;
+  return { ok: true, verifier: 'apple', canonicalTxn };
 }
 
 /**
@@ -150,7 +156,9 @@ export async function verifyGoogle({ productId, purchaseToken }) {
       error: `google-purchaseState-${j.purchaseState}`,
     };
   }
-  return { ok: true, verifier: 'google' };
+  // Canonical id from Google's response (orderId, e.g. "GPA.1234-...").
+  // Falls back to the purchaseToken itself — also server-validated.
+  return { ok: true, verifier: 'google', canonicalTxn: j.orderId ?? purchaseToken };
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────

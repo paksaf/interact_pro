@@ -14,6 +14,7 @@ class AppRoutes {
   static const String ttsSettings = 'tts-settings';
   static const String paywall = 'paywall';
   static const String nearbyDevices = 'nearby-devices';
+  static const String webShare = 'web-share';
   static const String findSigned = 'find-signed';
   static const String imageIdentifier = 'image-identifier';
   static const String converter = 'converter';
@@ -49,6 +50,7 @@ class AppRoutes {
   static const pathSettings = '/settings';
   static const pathTtsSettings = '/settings/tts';
   static const pathNearbyDevices = '/nearby';
+  static const pathWebShare = '/nearby/web-share';
   static const pathFindSigned = '/find-signed';
   static const pathImageIdentifier = '/identify';
   static const pathConverter = '/converter';

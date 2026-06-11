@@ -33,6 +33,7 @@ import '../../features/ocr/presentation/screens/batch_image_ocr_screen.dart';
 import '../../features/ocr/presentation/screens/ocr_screen.dart';
 import '../../features/pro/presentation/screens/paywall_screen.dart';
 import '../../features/lan/presentation/screens/nearby_devices_screen.dart';
+import '../../features/lan/presentation/screens/web_share_screen.dart';
 import '../../features/tags/presentation/tag_manager_screen.dart';
 import '../../features/bookmarks/presentation/reference_diary_screen.dart';
 import '../../features/signatures/presentation/verification_screen.dart';
@@ -148,6 +149,11 @@ final appRouterProvider = Provider<GoRouter>((Ref ref) {
         path: AppRoutes.pathNearbyDevices,
         name: AppRoutes.nearbyDevices,
         builder: (_, __) => const NearbyDevicesScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.pathWebShare,
+        name: AppRoutes.webShare,
+        builder: (_, __) => const WebShareScreen(),
       ),
       GoRoute(
         path: AppRoutes.pathTagManager,

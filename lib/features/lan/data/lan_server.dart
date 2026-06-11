@@ -157,6 +157,12 @@ class LanServer {
       ..post('/pair/init', _pairInit)
       ..post('/pair/complete', _pairComplete)
       ..post('/receive', _receive)
+      // Web-share portal — lets ANY device with a browser (iPhone without
+      // the app, guest laptops…) push a file to this device. Active only
+      // while the user has the "Receive from any device" screen open
+      // (PIN-gated, see enableWebShare/disableWebShare).
+      ..get('/share', _sharePage)
+      ..post('/share/upload', _shareUpload)
       // Cast endpoints. Active only while the cast service has registered
       // a PDF — otherwise return 404 / "no active cast".
       ..get('/cast/info', _castInfo)
@@ -497,6 +503,194 @@ class LanServer {
       }),
       headers: {'Content-Type': 'application/json'},
     );
+  }
+
+  // ── Web share (receive from ANY browser, no app needed) ─────────────
+  //
+  // Product req 2026-06-10: "if I have an iPhone (without Interact Pro)
+  // and want to share a document on the TV, Interact Pro shall receive
+  // it and show it." iPhones can't run our pair protocol and stock iOS
+  // has no DLNA sender, so the lowest-friction universal channel is the
+  // browser: the receiving device (TV) shows a QR + URL + 6-digit PIN;
+  // the sender scans the QR, picks a file, and the upload lands in the
+  // same IncomingShare pipeline as app-to-app transfers (auto-opens in
+  // the right viewer).
+  //
+  // Security model: only active while the user is LOOKING at the
+  // receive screen (enable/disable bracket the screen's lifecycle),
+  // gated by a single-session random PIN, LAN-only, files land in the
+  // same sandboxed folders as paired transfers. No HMAC — possession of
+  // the on-screen PIN IS the proof of physical presence.
+
+  String? _webSharePin;
+  bool get webShareActive => _webSharePin != null;
+
+  /// Activate the portal; returns the PIN to display. Idempotent-ish:
+  /// re-enabling mints a fresh PIN (old links stop working).
+  String enableWebShare() {
+    final pin = (Random.secure().nextInt(900000) + 100000).toString();
+    _webSharePin = pin;
+    appLogger.i('LAN web-share: ENABLED');
+    return pin;
+  }
+
+  void disableWebShare() {
+    _webSharePin = null;
+    appLogger.i('LAN web-share: disabled');
+  }
+
+  static const int _webShareMaxBytes = 512 * 1024 * 1024; // 512 MB
+
+  static ShareKind _kindForExtension(String ext) {
+    return switch (ext.toLowerCase()) {
+      '.pdf' => ShareKind.pdf,
+      '.jpg' || '.jpeg' || '.png' || '.gif' || '.webp' || '.heic' ||
+      '.heif' || '.bmp' => ShareKind.image,
+      '.mp4' || '.mov' || '.mkv' || '.webm' || '.3gp' => ShareKind.video,
+      '.txt' || '.md' => ShareKind.text,
+      '.doc' || '.docx' || '.rtf' || '.xls' || '.xlsx' || '.ppt' ||
+      '.pptx' || '.pages' || '.numbers' || '.key' => ShareKind.document,
+      _ => ShareKind.other,
+    };
+  }
+
+  Future<Response> _sharePage(Request req) async {
+    if (!webShareActive) {
+      return Response.notFound(
+        'Sharing is not active. Open "Receive from any device" '
+        'on the Interact Pro screen first.',
+      );
+    }
+    // PIN may ride in via the QR URL (?pin=) so scanners skip typing it.
+    final prefill = req.url.queryParameters['pin'] ?? '';
+    final html = '''
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Send to $deviceName — Interact Pro</title>
+<style>
+  body { font-family: -apple-system, Roboto, sans-serif; background:#101418;
+         color:#eee; margin:0; padding:24px; }
+  .card { max-width:420px; margin:8vh auto; background:#1b2128; padding:24px;
+          border-radius:16px; }
+  h1 { font-size:1.25rem; margin:0 0 4px; }
+  p  { color:#9ab; font-size:.9rem; }
+  input[type=text] { width:100%; box-sizing:border-box; font-size:1.3rem;
+          letter-spacing:.3em; text-align:center; padding:10px; margin:8px 0 16px;
+          border-radius:10px; border:1px solid #345; background:#0d1116; color:#fff; }
+  input[type=file] { width:100%; margin:8px 0 16px; color:#9ab; }
+  button { width:100%; padding:14px; font-size:1rem; border:0; border-radius:12px;
+          background:#2e7d32; color:#fff; font-weight:600; }
+  button:disabled { background:#2a3138; color:#678; }
+  #st { margin-top:14px; text-align:center; font-size:.95rem; min-height:1.2em; }
+  progress { width:100%; }
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>Send a file to “$deviceName”</h1>
+  <p>Enter the PIN shown on the receiving screen, pick a file, send.</p>
+  <input id="pin" type="text" inputmode="numeric" maxlength="6"
+         placeholder="••••••" value="$prefill">
+  <input id="f" type="file">
+  <button id="go" onclick="send()">Send</button>
+  <div id="st"></div>
+</div>
+<script>
+async function send() {
+  const f = document.getElementById('f').files[0];
+  const pin = document.getElementById('pin').value.trim();
+  const st = document.getElementById('st');
+  const go = document.getElementById('go');
+  if (!f) { st.textContent = 'Pick a file first.'; return; }
+  if (pin.length !== 6) { st.textContent = 'Enter the 6-digit PIN.'; return; }
+  go.disabled = true; st.textContent = 'Sending…';
+  try {
+    const r = await fetch('/share/upload?pin=' + encodeURIComponent(pin) +
+        '&name=' + encodeURIComponent(f.name), { method:'POST', body:f });
+    if (r.ok) { st.textContent = '✓ Sent — check the screen.'; }
+    else { st.textContent = 'Failed: ' + (await r.text()); go.disabled = false; }
+  } catch (e) { st.textContent = 'Network error: ' + e; go.disabled = false; }
+}
+</script>
+</body>
+</html>
+''';
+    return Response.ok(html,
+        headers: {'Content-Type': 'text/html; charset=utf-8'},);
+  }
+
+  Future<Response> _shareUpload(Request req) async {
+    final pin = _webSharePin;
+    if (pin == null) return Response(403, body: 'Sharing not active');
+    if (req.url.queryParameters['pin'] != pin) {
+      return Response(403, body: 'Wrong PIN');
+    }
+
+    final ts = DateTime.now().millisecondsSinceEpoch;
+    final suppliedName = req.url.queryParameters['name'];
+    final safeBase = (suppliedName == null || suppliedName.trim().isEmpty
+            ? 'web_$ts'
+            : suppliedName)
+        .replaceAll(RegExp(r'[^a-zA-Z0-9_.-]'), '_');
+    final ext = p.extension(safeBase);
+    final kind = _kindForExtension(ext);
+    final filename =
+        '${p.basenameWithoutExtension(safeBase)}${ext.isEmpty ? '.bin' : ext}';
+    final destPath = kind == ShareKind.pdf
+        ? appPaths.pdfPathFor(filename)
+        : appPaths.incomingPathFor(filename);
+    await Directory(p.dirname(destPath)).create(recursive: true);
+
+    final partial = File('$destPath.partial');
+    final sink = partial.openWrite();
+    int totalBytes = 0;
+    try {
+      await for (final chunk in req.read()) {
+        totalBytes += chunk.length;
+        if (totalBytes > _webShareMaxBytes) {
+          throw const FileSystemException('Upload exceeds 512 MB limit');
+        }
+        sink.add(chunk);
+      }
+      await sink.flush();
+      await sink.close();
+    } catch (e, st) {
+      appLogger.e('LAN /share/upload failed', error: e, stackTrace: st);
+      try {
+        await sink.close();
+      } catch (_) {}
+      try {
+        if (await partial.exists()) await partial.delete();
+      } catch (_) {}
+      return Response(413, body: 'Upload failed: $e');
+    }
+    if (totalBytes == 0) {
+      try {
+        if (await partial.exists()) await partial.delete();
+      } catch (_) {}
+      return Response(400, body: 'Empty upload');
+    }
+    await partial.rename(destPath);
+
+    final remote =
+        (req.context['shelf.io.connection_info'] as HttpConnectionInfo?)
+            ?.remoteAddress
+            .address;
+    _incoming.add(IncomingShare(
+      path: destPath,
+      kind: kind,
+      fromPeerId: 'web:${remote ?? 'unknown'}',
+      fromName: 'Web upload${remote == null ? '' : ' ($remote)'}',
+      receivedAt: DateTime.now(),
+      bytes: totalBytes,
+    ),);
+    appLogger.i('LAN web-share: received $filename ($totalBytes bytes) '
+        'from ${remote ?? 'unknown'}');
+    return Response.ok(jsonEncode({'ok': true, 'received': totalBytes}),
+        headers: {'Content-Type': 'application/json'},);
   }
 
   // ── Cast: public API ─────────────────────────────────────────────────

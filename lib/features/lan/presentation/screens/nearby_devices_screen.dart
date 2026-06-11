@@ -1,6 +1,9 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+
+import '../../../../core/routing/app_routes.dart';
 
 import '../../../../core/storage/app_database.dart' as db;
 import '../../data/lan_repository.dart';
@@ -64,6 +67,13 @@ class _NearbyDevicesScreenState extends ConsumerState<NearbyDevicesScreen> {
       appBar: AppBar(
         title: const Text('Nearby devices'),
         actions: [
+          // Web-share portal — receive from devices WITHOUT the app
+          // (guest iPhones, laptops) via browser upload + QR + PIN.
+          IconButton(
+            icon: const Icon(Icons.qr_code_2),
+            tooltip: 'Receive from any device',
+            onPressed: () => context.pushNamed(AppRoutes.webShare),
+          ),
           // Always-present refresh action. Autofocused so the TV remote
           // D-pad has a landing target even when no devices are paired or
           // discovered yet.
