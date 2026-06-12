@@ -52,6 +52,7 @@ import { signToken, requireAuth, requireAdmin, denyToken, userToJson } from './a
 import { sendOtpEmail, sendRenewalApprovedEmail } from './email.js';
 import { sendOtpSms } from './sms.js';
 import { draftAiReply, SLA_MESSAGE } from './chat-ai.js';
+import { docChat } from './doc-ai.js';
 import { verifyApple, verifyGoogle } from './iap-verify.js';
 import { convertToPdfRoute } from './convert.js';
 import { handleIosWaitlist, listIosWaitlist, markIosWaitlistInvited } from './ios-waitlist.js';
@@ -864,6 +865,28 @@ app.post('/api/auth/renewal/:id/decline', requireAdmin, async (req, res) => {
 // ── Chat — user side ────────────────────────────────────────────────────
 
 // Fetch the user's current open conversation (or create one).
+// ── Chat-with-document (market-fit Gate B, 2026-06-12) ──────────────────
+// Client sends extracted PDF text + a question/mode; DeepSeek answers
+// grounded in the text. Pro-gated (req.user.is_pro set by requireAuth chain).
+app.post('/api/ai/doc-chat', requireAuth, async (req, res) => {
+  const { docText, question, mode, targetLang, history } = req.body || {};
+  // Entitlement: active Pro OR an unexpired trial.
+  const trialOk = req.user.trial_ends_at && new Date(req.user.trial_ends_at) > new Date();
+  if (!req.user.pro_active && !trialOk) {
+    return res.status(402).json({ ok: false, error: 'Pro feature', upgrade: true });
+  }
+  if (typeof docText !== 'string' || docText.length < 1) {
+    return res.status(400).json({ ok: false, error: 'docText required' });
+  }
+  if (mode === 'ask' && (!question || !String(question).trim())) {
+    return res.status(400).json({ ok: false, error: 'question required for ask mode' });
+  }
+  const out = await docChat({ docText, question, mode, targetLang, history: Array.isArray(history) ? history : [] });
+  if (!out.ok) return res.status(out.error && out.error.startsWith('AI not') ? 503 : 502).json(out);
+  await audit(req.user.id, 'ai.doc_chat', null, { mode: mode || 'ask', chars: docText.length }).catch(() => {});
+  return res.json(out);
+});
+
 app.get('/api/chat/conversation', requireAuth, async (req, res) => {
   let convo = await queryOne(
     `SELECT id, title, status, handoff_at, created_at, updated_at

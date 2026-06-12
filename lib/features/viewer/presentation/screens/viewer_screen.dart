@@ -41,6 +41,7 @@ import '../../../bookmarks/presentation/add_bookmark_sheet.dart';
 import '../../../bookmarks/presentation/bookmark_drawer.dart';
 import '../../../bookmarks/presentation/bookmark_provider.dart';
 import '../../../signatures/presentation/sign_sheet.dart';
+import '../../../ai/presentation/doc_chat_sheet.dart';
 import '../../../translation/presentation/widgets/translation_sheet.dart';
 import '../../../voice/presentation/widgets/read_aloud_bar.dart';
 import '../../data/repositories/pdf_repository_impl.dart';
@@ -948,6 +949,18 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
     );
   }
 
+  /// Chat-with-document (market-fit Gate B). Opens the AI sheet bound to the
+  /// current file + page; the sheet extracts text and calls pro-api.
+  Future<void> _askAiFlow() async {
+    final page = _pdfController.pageNumber;
+    await DocChatSheet.show(
+      context,
+      filePath: widget.filePath,
+      currentPage: page < 1 ? 1 : page,
+      onUpgrade: () => context.pushNamed(AppRoutes.paywall),
+    );
+  }
+
   /// Open the TranslationSheet over the user-selected text if any, else
   /// the current page's extracted text. Pre-fills the sheet's "original
   /// text" so the user can immediately pick a target language and hit
@@ -1045,6 +1058,12 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
                     label: 'Find',
                     tooltip: 'Search in document',
                     onPressed: () => _showSearchSheet(context),
+                  ),
+                  LabeledIconButton(
+                    icon: const Icon(Icons.auto_awesome),
+                    label: 'Ask AI',
+                    tooltip: 'Ask this document (summarize, extract, translate)',
+                    onPressed: _askAiFlow,
                   ),
                 // Undo only appears when there's a snapshot to roll back to —
                 // currently that means "the last signature placement". Easy to
