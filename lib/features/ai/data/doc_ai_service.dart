@@ -72,7 +72,7 @@ class DocAiService {
     String? targetLang,
     List<Map<String, String>> history = const [],
   }) async {
-    final jwt = await _secure.read(_kJwtKey);
+    final jwt = await _secure.read(key: _kJwtKey);
     if (jwt == null) {
       return DocAiResult(ok: false, error: 'Please sign in to use the AI assistant.');
     }
