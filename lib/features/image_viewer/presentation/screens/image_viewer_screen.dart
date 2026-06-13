@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:path/path.dart' as p;
 import 'package:share_plus/share_plus.dart';
 
+import '../../../../core/sharing/pro_share.dart';
+
 /// Full-screen image viewer with pinch-zoom + pan + share.
 ///
 /// Used as the auto-open target when a peer pushes an `image/*` payload via
@@ -58,11 +60,9 @@ class ImageViewerScreen extends StatelessWidget {
   Future<void> _share(BuildContext context, File file) async {
     try {
       // Share the file out to other apps. share_plus 12.x uses XFile.
-      await SharePlus.instance.share(
-        ShareParams(
-          files: [XFile(file.path)],
-          text: p.basename(file.path),
-        ),
+      await ProShare.files(
+        [XFile(file.path)],
+        text: p.basename(file.path),
       );
     } catch (e) {
       if (context.mounted) {

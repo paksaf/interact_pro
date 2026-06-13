@@ -9,6 +9,7 @@ import 'package:share_plus/share_plus.dart';
 
 import '../../../../core/permissions/app_permissions.dart';
 import '../../../../core/permissions/permission_dialog.dart';
+import '../../../../core/sharing/pro_share.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../domain/measurement.dart';
 
@@ -236,8 +237,9 @@ class _MeasuringToolScreenState extends State<MeasuringToolScreen> {
       );
       await f.writeAsBytes(bytes.buffer.asUint8List());
 
-      await SharePlus.instance.share(
-        ShareParams(files: [XFile(f.path)], text: 'Measurement annotation'),
+      await ProShare.files(
+        [XFile(f.path)],
+        text: 'Measurement annotation',
       );
     } catch (e) {
       if (!mounted) return;

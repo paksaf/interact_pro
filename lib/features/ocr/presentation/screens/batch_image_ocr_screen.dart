@@ -9,6 +9,7 @@ import 'package:path/path.dart' as p;
 import 'package:share_plus/share_plus.dart';
 
 import '../../../../core/permissions/app_permissions.dart';
+import '../../../../core/sharing/pro_share.dart';
 import '../../../../core/permissions/permission_dialog.dart';
 import '../../../../core/storage/app_paths.dart';
 import '../../../../core/utils/logger.dart';
@@ -140,11 +141,9 @@ class _BatchImageOcrScreenState extends ConsumerState<BatchImageOcrScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('Saved $outName')),
     );
-    await SharePlus.instance.share(
-      ShareParams(
-        files: [XFile(outPath)],
-        subject: 'Batch OCR · ${_jobs.length} images',
-      ),
+    await ProShare.files(
+      [XFile(outPath)],
+      subject: 'Batch OCR · ${_jobs.length} images',
     );
   }
 

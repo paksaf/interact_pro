@@ -4,9 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:share_plus/share_plus.dart';
-
 import '../../../../core/routing/app_routes.dart';
+import '../../../../core/sharing/pro_share.dart';
 import '../../domain/handwriting_result.dart';
 import '../../domain/supported_languages.dart';
 import '../providers/handwriting_controller.dart';
@@ -583,9 +582,7 @@ class _BufferCard extends StatelessWidget {
   }
 
   Future<void> _share() async {
-    await SharePlus.instance.share(
-      ShareParams(text: text, subject: 'Handwriting transcript'),
-    );
+    await ProShare.text(text, subject: 'Handwriting transcript');
   }
 
   @override

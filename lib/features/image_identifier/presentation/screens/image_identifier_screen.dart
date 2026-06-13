@@ -9,6 +9,7 @@ import 'package:share_plus/share_plus.dart';
 
 import '../../../../core/permissions/app_permissions.dart';
 import '../../../../core/permissions/permission_dialog.dart';
+import '../../../../core/sharing/pro_share.dart';
 import '../../data/image_identifier_service.dart';
 import '../../domain/identifier_result.dart';
 
@@ -141,8 +142,9 @@ class _ImageIdentifierScreenState extends ConsumerState<ImageIdentifierScreen> {
       '${tmp.path}/image-identification-${DateTime.now().millisecondsSinceEpoch}.txt',
     );
     await f.writeAsString(text);
-    await SharePlus.instance.share(
-      ShareParams(files: [XFile(f.path)], text: 'Image identification results'),
+    await ProShare.files(
+      [XFile(f.path)],
+      text: 'Image identification results',
     );
   }
 

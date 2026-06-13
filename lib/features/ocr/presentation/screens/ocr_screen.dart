@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
 import 'package:share_plus/share_plus.dart';
 
+import '../../../../core/sharing/pro_share.dart';
 import '../../../../core/storage/app_paths.dart';
 import '../../../viewer/data/repositories/pdf_repository_impl.dart';
 import '../../../viewer/domain/entities/pdf_document.dart';
@@ -95,11 +96,9 @@ class _OcrScreenState extends ConsumerState<OcrScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('Saved ${p.basename(outPath)}')),
     );
-    await SharePlus.instance.share(
-      ShareParams(
-        files: [XFile(outPath)],
-        subject: 'OCR text: ${p.basename(outPath)}',
-      ),
+    await ProShare.files(
+      [XFile(outPath)],
+      subject: 'OCR text: ${p.basename(outPath)}',
     );
   }
 

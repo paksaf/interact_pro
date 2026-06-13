@@ -6,9 +6,9 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:share_plus/share_plus.dart';
 
 import '../../../../core/routing/app_routes.dart';
+import '../../../../core/sharing/pro_share.dart';
 import '../../../handwriting/domain/supported_languages.dart';
 import '../../../handwriting/presentation/widgets/language_picker_sheet.dart';
 import '../../domain/transcribe_engine.dart';
@@ -273,11 +273,9 @@ class _HandwritingDocScreenState extends ConsumerState<HandwritingDocScreen> {
                 },
                 onShare: () async {
                   if (state.transcript.trim().isEmpty) return;
-                  await SharePlus.instance.share(
-                    ShareParams(
-                      text: state.transcript,
-                      subject: 'Handwriting transcription',
-                    ),
+                  await ProShare.text(
+                    state.transcript,
+                    subject: 'Handwriting transcription',
                   );
                 },
                 onSavePdf: _saveAsPdf,
