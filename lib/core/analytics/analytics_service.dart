@@ -55,6 +55,10 @@ class AnalyticsEvents {
   static const ocrRun = 'ocr_run';
   static const translationRun = 'translation_run';
   static const driveSync = 'drive_sync';
+  // Gate-C growth-loop events (2026-06-14)
+  static const winMoment = 'win_moment'; // properties: {kind: doc_signed|doc_cast}
+  static const inviteSent = 'invite_sent'; // invite-a-signer referral
+  static const aiAsked = 'ai_asked'; // chat-with-document used
 }
 
 final analyticsServiceProvider = Provider<AnalyticsService>((Ref ref) {
