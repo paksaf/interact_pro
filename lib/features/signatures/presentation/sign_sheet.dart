@@ -9,6 +9,7 @@
 // signer-list mode (route to next person), and verification preview
 // after signing. For now we capture the audit row only.
 
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -18,6 +19,8 @@ import 'package:path/path.dart' as p;
 
 import '../../lan/domain/entities.dart';
 import '../../sharing/presentation/send_to_device_sheet.dart';
+import '../../../core/analytics/analytics_service.dart';
+import '../../../core/growth/growth_hooks.dart';
 import '../data/signature_repository.dart';
 import 'signature_provider.dart';
 
@@ -149,6 +152,10 @@ class _SignSheetState extends ConsumerState<SignSheet> {
       );
       // Refresh the document's signature list so the audit-trail UI updates.
       ref.invalidate(signaturesForDocumentProvider(widget.documentId));
+
+      // Gate-C win moment: a successful sign → analytics event + (throttled)
+      // native review prompt. Best-effort; never blocks the sign result.
+      unawaited(GrowthHooks.docSigned(ref.read(analyticsServiceProvider).track));
 
       // Phase 2: write the sidecar JSON alongside the PDF. Best-effort
       // — if writing fails (e.g. PDF lives in a read-only location),
