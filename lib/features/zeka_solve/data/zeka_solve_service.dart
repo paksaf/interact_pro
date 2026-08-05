@@ -66,6 +66,22 @@ class ZekaSolveService {
   final AuthApiClient _auth;
   final http.Client _http;
 
+  /// Host that serves `/api/zeka/ai`.
+  ///
+  /// Defaults to `_auth.baseUrl` (pro.interactpak.com) — i.e. TODAY'S
+  /// behaviour is preserved exactly, so this change is non-breaking. That
+  /// default is however known-wrong (see the trace note in `_post`): the real
+  /// route is on interactpak.com and additionally needs a Zeka JWT, so
+  /// repointing alone converts a 404 into a 401.
+  ///
+  /// Once the auth question is settled, this becomes a build-flag change with
+  /// no code edit:
+  ///     flutter build apk --dart-define=ZEKA_BASE_URL=https://interactpak.com
+  String get _zekaBaseUrl {
+    const fromDefine = String.fromEnvironment('ZEKA_BASE_URL');
+    return fromDefine.isNotEmpty ? fromDefine : _auth.baseUrl;
+  }
+
   /// Text-only question. Same JSON shape the standalone Zeka app
   /// uses: `{ "question": "..." }`.
   Future<ZekaSolveResult> solveText(String question) async {
@@ -98,13 +114,34 @@ class ZekaSolveService {
   }) async {
     try {
       final token = await _auth.bearerToken();
-      // /api/zeka/ai accepts anonymous calls (rate-limited by IP).
-      // Sending a bearer when we have one bumps the per-user quota.
+      // ⚠️ BROKEN IN PRODUCTION — traced 2026-08-05. Two separate faults:
+      //
+      // 1. WRONG HOST. `_auth.baseUrl` is https://pro.interactpak.com, but
+      //    `/api/zeka/ai` does NOT exist there. It lives on interactpak.com
+      //    (`interactpak-nextjs/src/app/api/zeka/ai/route.ts`). Caddy routes
+      //    non-`/api/ocr/*`,`/api/tts/*` paths on pro.interactpak.com to the
+      //    Express pro-api, which has a catch-all 404 — so every Zeka Solve
+      //    request 404s. pro-api exposes no zeka route of its own.
+      //
+      // 2. THE COMMENT THAT USED TO BE HERE WAS FALSE. It claimed the route
+      //    "accepts anonymous calls (rate-limited by IP)" and that a bearer
+      //    merely "bumps the per-user quota". The real route REQUIRES auth —
+      //    no user id ⇒ 401 `sign_in_required` — and then gates on
+      //    entitlement ⇒ 402 `premium_required` without an AI plan. It also
+      //    wants a *Zeka* JWT from `/api/auth/zeka/verify`, which is a
+      //    different credential from this app's own `/api/auth/otp/*` token.
+      //
+      // Therefore simply repointing the host is NOT a complete fix — it would
+      // turn a 404 into a 401. Making this work needs a product decision on
+      // how Interact Pro users authenticate to Zeka (mint a Zeka JWT? share
+      // fleet SSO? proxy via pro-api with a server-side key?). Left
+      // deliberately unchanged pending that call; `ZEKA_BASE_URL` below makes
+      // the host a one-flag change once it is made.
       final headers = <String, String>{
         if (isJson) 'Content-Type': 'application/json',
         if (token != null) 'Authorization': 'Bearer $token',
       };
-      final uri = Uri.parse('${_auth.baseUrl}/api/zeka/ai');
+      final uri = Uri.parse('$_zekaBaseUrl/api/zeka/ai');
       final resp =
           await _http.post(uri, headers: headers, body: body).timeout(
                 const Duration(seconds: 45),
