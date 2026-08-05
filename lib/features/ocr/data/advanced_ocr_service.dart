@@ -111,12 +111,57 @@ class AdvancedOcrResult {
       );
 }
 
+/// Bilingual, status-aware failure — pattern borrowed verbatim from
+/// interact-maps' proven `MapsApiException` (maps_api_client.dart) so a
+/// not-yet-deployed or unreachable backend degrades gracefully instead of
+/// surfacing a raw "Server returned 404". `message` stays the English text so
+/// existing `SnackBar(Text(failure.message))` call sites are unaffected;
+/// `bilingual` adds the Urdu line for screens that want it.
 class AdvancedOcrFailure implements Exception {
-  AdvancedOcrFailure(this.message, {this.cause});
-  final String message;
+  AdvancedOcrFailure(this.message, {this.ur, this.notDeployed = false, this.cause});
+  final String message; // English
+  final String? ur; // Urdu (optional)
+  final bool notDeployed; // true when the endpoint 404'd (server not updated)
   final Object? cause;
+
+  /// One display string: English + Urdu when available.
+  String get bilingual => ur == null || ur!.isEmpty ? message : '$message\n$ur';
+
   @override
   String toString() => 'AdvancedOcrFailure($message)';
+
+  static AdvancedOcrFailure notConfigured() => AdvancedOcrFailure(
+        'Advanced OCR is not configured on this build. '
+        'Reach out to the admin to enable it.',
+        ur: 'اس بلڈ میں ایڈوانسڈ او سی آر فعال نہیں ہے۔',
+      );
+
+  static AdvancedOcrFailure notDeployedYet() => AdvancedOcrFailure(
+        'This feature is not on the server yet — try again after the next update.',
+        ur: 'یہ فیچر ابھی سرور پر نہیں ہے — اگلی اپڈیٹ کے بعد دوبارہ کوشش کریں۔',
+        notDeployed: true,
+      );
+
+  static AdvancedOcrFailure tooLarge() => AdvancedOcrFailure(
+        'This page is too large to process — try a lower-resolution scan.',
+        ur: 'یہ صفحہ بہت بڑا ہے — کم ریزولوشن سے دوبارہ کوشش کریں۔',
+      );
+
+  static AdvancedOcrFailure unauthorized() => AdvancedOcrFailure(
+        'Advanced OCR rejected the request (auth) — contact the admin.',
+        ur: 'ایڈوانسڈ او سی آر نے درخواست مسترد کر دی (تصدیق) — ایڈمن سے رابطہ کریں۔',
+      );
+
+  static AdvancedOcrFailure server(int status) => AdvancedOcrFailure(
+        'Server error ($status) — please retry.',
+        ur: 'سرور میں مسئلہ ($status) — دوبارہ کوشش کریں۔',
+      );
+
+  static AdvancedOcrFailure offline(Object? cause) => AdvancedOcrFailure(
+        'No connection — check internet and retry.',
+        ur: 'انٹرنیٹ نہیں — کنکشن چیک کر کے دوبارہ کوشش کریں۔',
+        cause: cause,
+      );
 }
 
 class AdvancedOcrService {
@@ -140,10 +185,7 @@ class AdvancedOcrService {
     String? lang,
   }) async {
     if (!isAvailable) {
-      throw AdvancedOcrFailure(
-        'Advanced OCR is not configured on this build. '
-        'Reach out to the admin to enable it.',
-      );
+      throw AdvancedOcrFailure.notConfigured();
     }
 
     final uri = Uri.parse(
@@ -164,12 +206,26 @@ class AdvancedOcrService {
           await _client.send(req).timeout(const Duration(seconds: 90));
       final body = await streamed.stream.bytesToString();
       if (streamed.statusCode != 200) {
-        appLogger.w(
-          'AdvancedOCR: HTTP ${streamed.statusCode} — $body',
-        );
-        throw AdvancedOcrFailure(
-          'Server returned ${streamed.statusCode}.',
-        );
+        final code = streamed.statusCode;
+        appLogger.w('AdvancedOCR: HTTP $code — $body');
+        // Status → typed failure (borrowed from maps_api_client._send).
+        if (code == 404) throw AdvancedOcrFailure.notDeployedYet();
+        if (code == 413) throw AdvancedOcrFailure.tooLarge();
+        if (code == 401 || code == 403) throw AdvancedOcrFailure.unauthorized();
+        // Surface the server's human message when present (envelope: detail/error/message).
+        try {
+          final decoded = jsonDecode(body);
+          if (decoded is Map) {
+            final msg = (decoded['detail'] ?? decoded['message'] ?? decoded['error'])
+                ?.toString();
+            if (msg != null && msg.trim().isNotEmpty) {
+              throw AdvancedOcrFailure(msg.trim());
+            }
+          }
+        } on AdvancedOcrFailure {
+          rethrow;
+        } catch (_) {/* fall through to generic server error */}
+        throw AdvancedOcrFailure.server(code);
       }
       final json = jsonDecode(body) as Map<String, dynamic>;
       final result = AdvancedOcrResult.fromJson(json);
@@ -182,7 +238,8 @@ class AdvancedOcrService {
       rethrow;
     } catch (e, st) {
       appLogger.e('AdvancedOCR request failed', error: e, stackTrace: st);
-      throw AdvancedOcrFailure('Network or parsing error.', cause: e);
+      // Network/timeout/parse → offline (retryable), matching maps' offline branch.
+      throw AdvancedOcrFailure.offline(e);
     }
   }
 

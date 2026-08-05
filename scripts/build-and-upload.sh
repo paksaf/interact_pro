@@ -204,6 +204,34 @@ if [ -z "$AI_SECRET_VAL" ]; then
   echo "   ⚠ ALLOW_MISSING_AI_SECRET=1 set — proceeding without secret."
 fi
 
+# ─── Drive-TV OAuth (device-flow) defines ───────────────────────────
+# The Android-TV Drive device-flow login reads DRIVE_TV_CLIENT_ID /
+# DRIVE_TV_CLIENT_SECRET via String.fromEnvironment (see
+# lib/core/constants/app_constants.dart → driveTvConfigured). Source the
+# real values from the untracked _shared/config/google_credentials.json
+# (tv_limited_input.client_id / .client_secret) and pass them as
+# --dart-define on every flutter build below. NEVER echo the secret.
+DRIVE_CREDS="$PROJECT_DIR/../_shared/config/google_credentials.json"
+if command -v jq >/dev/null 2>&1; then
+  DRIVE_TV_CLIENT_ID="$(jq -r '.tv_limited_input.client_id // ""' "$DRIVE_CREDS" 2>/dev/null || true)"
+  DRIVE_TV_CLIENT_SECRET="$(jq -r '.tv_limited_input.client_secret // ""' "$DRIVE_CREDS" 2>/dev/null || true)"
+else
+  DRIVE_TV_CLIENT_ID="$(python3 -c "import json;print(json.load(open('$DRIVE_CREDS')).get('tv_limited_input',{}).get('client_id','') or '')" 2>/dev/null || true)"
+  DRIVE_TV_CLIENT_SECRET="$(python3 -c "import json;print(json.load(open('$DRIVE_CREDS')).get('tv_limited_input',{}).get('client_secret','') or '')" 2>/dev/null || true)"
+fi
+if [ -z "${DRIVE_TV_CLIENT_ID:-}" ] || [ -z "${DRIVE_TV_CLIENT_SECRET:-}" ] \
+   || [ "$DRIVE_TV_CLIENT_SECRET" = "PASTE_TV_CLIENT_SECRET_HERE" ]; then
+  echo
+  echo "❌ DRIVE_TV_CLIENT_ID / DRIVE_TV_CLIENT_SECRET missing from"
+  echo "   $DRIVE_CREDS"
+  echo "   (expected keys: tv_limited_input.client_id / .client_secret)."
+  echo "   The Android-TV Drive device-flow login (driveTvConfigured) needs"
+  echo "   both baked in — a creds-less build silently ships it disabled."
+  echo "   Fill the real values (see google_credentials.json.example) and retry."
+  exit 1
+fi
+echo "✓ Drive-TV OAuth client resolved (client_id ${#DRIVE_TV_CLIENT_ID} bytes, secret ${#DRIVE_TV_CLIENT_SECRET} bytes)"
+
 build_android() {
   # Warn loudly if no permanent release keystore is configured. Without
   # one, build.gradle.kts falls back to the debug keystore which is
@@ -265,7 +293,9 @@ build_android() {
   echo "→ Building Android APK (dart-defines from $DEFINES_FILE)"
   flutter build apk --release \
     --no-tree-shake-icons \
-    --dart-define-from-file="$DEFINES_FILE"
+    --dart-define-from-file="$DEFINES_FILE" \
+    --dart-define=DRIVE_TV_CLIENT_ID="$DRIVE_TV_CLIENT_ID" \
+    --dart-define=DRIVE_TV_CLIENT_SECRET="$DRIVE_TV_CLIENT_SECRET"
 
   cp build/app/outputs/flutter-apk/app-release.apk \
      "$STAGE/InteractPro.apk"
@@ -279,7 +309,9 @@ build_android() {
   echo "→ Building Android AAB (best-effort)"
   if flutter build appbundle --release \
        --no-tree-shake-icons \
-       --dart-define-from-file="$DEFINES_FILE"; then
+       --dart-define-from-file="$DEFINES_FILE" \
+       --dart-define=DRIVE_TV_CLIENT_ID="$DRIVE_TV_CLIENT_ID" \
+       --dart-define=DRIVE_TV_CLIENT_SECRET="$DRIVE_TV_CLIENT_SECRET"; then
     if [ -f "build/app/outputs/bundle/release/app-release.aab" ]; then
       cp build/app/outputs/bundle/release/app-release.aab \
          "$STAGE/InteractPro.aab"
@@ -296,7 +328,9 @@ build_ios() {
     appstore)
       echo "→ Building iOS IPA (App Store distribution)"
       flutter build ipa --release \
-        --dart-define-from-file="$DEFINES_FILE"
+        --dart-define-from-file="$DEFINES_FILE" \
+        --dart-define=DRIVE_TV_CLIENT_ID="$DRIVE_TV_CLIENT_ID" \
+        --dart-define=DRIVE_TV_CLIENT_SECRET="$DRIVE_TV_CLIENT_SECRET"
       cp build/ios/ipa/*.ipa "$STAGE/InteractPro.ipa" 2>/dev/null || \
         echo "  (no IPA produced — App Store provisioning profile not found." \
              "Try --ios-dev or --ios-unsigned for manual install paths.)"
@@ -305,6 +339,8 @@ build_ios() {
       echo "→ Building iOS IPA (development — personal team, registered devices only)"
       flutter build ipa --release \
         --dart-define-from-file="$DEFINES_FILE" \
+        --dart-define=DRIVE_TV_CLIENT_ID="$DRIVE_TV_CLIENT_ID" \
+        --dart-define=DRIVE_TV_CLIENT_SECRET="$DRIVE_TV_CLIENT_SECRET" \
         --export-options-plist="$PROJECT_DIR/ios/ExportOptions-development.plist"
       cp build/ios/ipa/*.ipa "$STAGE/InteractPro.ipa" 2>/dev/null || \
         echo "  (no IPA produced — make sure your iPhone has been plugged" \
@@ -318,7 +354,9 @@ build_ios() {
       # Apple ID the end user is signed into.
       echo "→ Building iOS .app (unsigned — for Sideloadly/AltStore distribution)"
       flutter build ios --release --no-codesign \
-        --dart-define-from-file="$DEFINES_FILE"
+        --dart-define-from-file="$DEFINES_FILE" \
+        --dart-define=DRIVE_TV_CLIENT_ID="$DRIVE_TV_CLIENT_ID" \
+        --dart-define=DRIVE_TV_CLIENT_SECRET="$DRIVE_TV_CLIENT_SECRET"
 
       local APP_PATH="$PROJECT_DIR/build/ios/iphoneos/Runner.app"
       if [ ! -d "$APP_PATH" ]; then

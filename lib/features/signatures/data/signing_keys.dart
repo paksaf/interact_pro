@@ -124,7 +124,12 @@ class SigningKeysService {
     required AppDatabase db,
     FlutterSecureStorage? storage,
   })  : _db = db,
-        _storage = storage ?? const FlutterSecureStorage();
+        // 2026-06-11 fleet fix: match secure_store.dart's backend — the
+        // bare default silently drops values on some devices (TV lesson).
+        _storage = storage ??
+            const FlutterSecureStorage(
+              aOptions: AndroidOptions(encryptedSharedPreferences: true),
+            );
 
   final AppDatabase _db;
   final FlutterSecureStorage _storage;

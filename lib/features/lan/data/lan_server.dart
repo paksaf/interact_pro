@@ -146,8 +146,9 @@ class LanServer {
     hits.add(now);
     _pairAttempts[peer] = hits;
     // Opportunistic sweep of peers that have gone quiet.
-    _pairAttempts.removeWhere((_, v) =>
-        v.every((t) => now.difference(t) >= _pairAttemptWindow));
+    _pairAttempts.removeWhere(
+      (_, v) => v.every((t) => now.difference(t) >= _pairAttemptWindow),
+    );
     return false;
   }
 
@@ -321,9 +322,11 @@ class LanServer {
     if (_pairRateLimited(peer)) {
       appLogger.w('LAN pair: rate-limited $peer '
           '(>$_pairAttemptsPerWindow attempts / ${_pairAttemptWindow.inSeconds}s)');
-      return Response(429,
-          body: jsonEncode({'error': 'too_many_pair_attempts'}),
-          headers: {'Content-Type': 'application/json'});
+      return Response(
+        429,
+        body: jsonEncode({'error': 'too_many_pair_attempts'}),
+        headers: {'Content-Type': 'application/json'},
+      );
     }
     final body = await req.readAsString();
     Map<String, dynamic> json;

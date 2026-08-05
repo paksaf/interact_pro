@@ -5,6 +5,8 @@
 //   POST /api/auth/otp/request    body { email | phone }
 //   POST /api/auth/otp/verify     body { email | phone, otp }
 //   GET  /api/auth/me             auth required
+//   GET  /api/entitlement/status       auth required — portfolio tier bridge
+//   POST /api/entitlement/extend-trial   auth required — self-serve +14d (capped)
 //   POST /api/auth/sign-out       auth required
 //
 //   POST /api/auth/renewal/request          auth required, body { note? }
@@ -56,6 +58,11 @@ import { docChat } from './doc-ai.js';
 import { verifyApple, verifyGoogle } from './iap-verify.js';
 import { convertToPdfRoute } from './convert.js';
 import { handleIosWaitlist, listIosWaitlist, markIosWaitlistInvited } from './ios-waitlist.js';
+import {
+  extendTrial,
+  resolveProEntitlement,
+  userRowToRecord,
+} from './entitlement-bridge.js';
 
 // In-memory multer for the convert route — payloads are ≤ 50 MB
 // (matches LibreOffice's practical limit for headless conversion on
@@ -284,6 +291,51 @@ app.post('/api/auth/otp/verify', async (req, res) => {
 
 app.get('/api/auth/me', requireAuth, (req, res) => {
   res.json({ user: userToJson(req.user) });
+});
+
+// Portfolio entitlement status — maps pro_active / trial_ends_at to the
+// shared free|trial|paid vocabulary. See docs/ENTITLEMENT_BRIDGE.md.
+app.get('/api/entitlement/status', requireAuth, (req, res) => {
+  res.json(resolveProEntitlement(req.user));
+});
+
+// Self-serve trial extend — portfolio extend loop (+INTERACT_TRIAL_DAYS, cap 2).
+// Requires migration 008 (users.trial_extensions). Admin extend-trial is separate.
+app.post('/api/entitlement/extend-trial', requireAuth, async (req, res) => {
+  const user = req.user;
+  if (!user.trial_ends_at) {
+    return res.status(400).json({
+      ok: false,
+      error: 'no_trial',
+      ...resolveProEntitlement(user),
+    });
+  }
+
+  const record = userRowToRecord(user);
+  const result = extendTrial(record);
+  if (!result.ok) {
+    const code = 409;
+    return res.status(code).json({
+      ok: false,
+      error: result.reason,
+      ...resolveProEntitlement(user),
+    });
+  }
+
+  const updated = await queryOne(
+    `UPDATE users
+        SET trial_ends_at = $1,
+            trial_extensions = $2
+      WHERE id = $3
+      RETURNING id, email, phone, display_name, role, trial_ends_at,
+                trial_extensions, pro_active, created_at`,
+    [result.trialEndsAt, result.trialExtensions, user.id],
+  );
+  if (!updated) {
+    return res.status(500).json({ ok: false, error: 'update_failed' });
+  }
+
+  res.json(resolveProEntitlement(updated));
 });
 
 // ── Auth: /api/auth/sign-out ────────────────────────────────────────────

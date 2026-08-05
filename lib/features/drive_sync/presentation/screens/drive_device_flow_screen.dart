@@ -44,7 +44,10 @@ class _DriveDeviceFlowScreenState
     _auth = GoogleDeviceFlowAuth(
       clientId: AppConstants.driveTvClientId,
       clientSecret: AppConstants.driveTvClientSecret,
-      scopes: AppConstants.driveScopes,
+      // NOT driveScopes — Google hard-rejects drive.readonly on the
+      // limited-input device flow (invalid_scope, verified 2026-06-11).
+      // See AppConstants.driveTvScopes.
+      scopes: AppConstants.driveTvScopes,
     );
     // Auto-start the flow on screen entry so the user sees a code
     // immediately rather than having to tap a button first.

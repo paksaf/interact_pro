@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io' show Platform;
 
 import 'package:bonsoir/bonsoir.dart';
+import 'package:flutter/services.dart' show MethodChannel;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/error/failures.dart';
@@ -71,6 +72,31 @@ abstract class LanDiscoveryService {
   Future<Result<void>> startBrowsing();
 
   Future<void> stopBrowsing();
+}
+
+/// Platform channel to MainActivity.kt's WifiManager.MulticastLock plumbing.
+/// Android-only: mDNS (224.0.0.251) and SSDP (239.255.255.250) multicast is
+/// dropped by Wi-Fi power-save on many devices unless the app holds the
+/// lock. The manifest has declared CHANGE_WIFI_MULTICAST_STATE since day
+/// one and *claimed* the lock was acquired in code — it never was until
+/// 2026-07-02. All calls are best-effort: on iOS / desktop / test harnesses
+/// the channel simply isn't there and we swallow the MissingPluginException.
+const MethodChannel _multicastChannel = MethodChannel('interact_pro/multicast');
+
+Future<void> _acquireMulticastLock() async {
+  if (!Platform.isAndroid) return;
+  try {
+    await _multicastChannel.invokeMethod<bool>('acquire');
+  } catch (e) {
+    appLogger.w('LAN: multicast lock acquire skipped: $e');
+  }
+}
+
+Future<void> _releaseMulticastLock() async {
+  if (!Platform.isAndroid) return;
+  try {
+    await _multicastChannel.invokeMethod<bool>('release');
+  } catch (_) {/* best-effort */}
 }
 
 class _BonsoirLanDiscoveryService implements LanDiscoveryService {
@@ -181,6 +207,10 @@ class _BonsoirLanDiscoveryService implements LanDiscoveryService {
   Future<Result<void>> startBrowsing() async {
     try {
       if (_discovery != null) return const Result<void>.ok(null);
+      // Hold the Wi-Fi multicast lock for the whole browse session —
+      // without it, mDNS announcements are dropped by Android power-save
+      // on many phones/TVs and peers appear minutes late or never.
+      await _acquireMulticastLock();
       _discovery = BonsoirDiscovery(type: kLanServiceType);
       await _discovery!.ready;
       // Capture _discovery in the listener so the handler knows which
@@ -258,6 +288,7 @@ class _BonsoirLanDiscoveryService implements LanDiscoveryService {
     } catch (_) {/* best-effort */}
     _discovery = null;
     _legacyDiscovery = null;
+    await _releaseMulticastLock();
   }
 
   void _handleEvent(BonsoirDiscoveryEvent e, BonsoirDiscovery discovery) {

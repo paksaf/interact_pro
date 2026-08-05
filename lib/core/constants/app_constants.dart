@@ -27,6 +27,17 @@ class AppConstants {
     'https://www.googleapis.com/auth/drive.readonly',
     'https://www.googleapis.com/auth/drive.file',
   ];
+
+  /// TV / device-flow scopes. Google HARD-REJECTS drive.readonly on the
+  /// limited-input device flow ("Invalid device flow scope", verified
+  /// against oauth2.googleapis.com/device/code 2026-06-11), so the TV can
+  /// only ever get drive.file consent of its own. Consequence: the TV's
+  /// Drive browser lists files created/uploaded BY Interact Pro (e.g.
+  /// from the phone app — same project, so they're visible here). Full
+  /// my-Drive browsing on TV would need a phone→TV token relay (backlog).
+  static const List<String> driveTvScopes = <String>[
+    'https://www.googleapis.com/auth/drive.file',
+  ];
   static const String driveBackupFolderName = 'Interact Pro';
   static const String driveBackupSubfolder = 'Backups';
 
@@ -46,23 +57,28 @@ class AppConstants {
   /// Until both ship, end users see Google's "unverified app" notice
   /// during pairing AND a 100-user lifetime cap applies. Code path
   /// works regardless — only the consent UX is affected.
+  /// Supplied at build via --dart-define=DRIVE_TV_CLIENT_ID=... (NOT committed).
   static const String driveTvClientId =
-      '394554205484-qgddairmjpo5d5kbuco94epslqe7p69s.apps.googleusercontent.com';
+      String.fromEnvironment('DRIVE_TV_CLIENT_ID');
 
-  /// Client secret paired with [driveTvClientId]. ADDED 2026-06-10:
-  /// Google's token endpoint REQUIRES client_secret for "TVs and
-  /// Limited Input devices" clients — without it the device-flow poll
-  /// fails with "client_secret is missing" (the TV Drive bug). Copy it
-  /// from Google Cloud Console → Credentials → the TV client → "Client
-  /// secret" (same place the client_id came from). Per Google's docs
-  /// this secret is NOT treated as confidential for this client type,
-  /// so shipping it in the APK is the sanctioned pattern. Template:
-  /// `_shared/config/google_credentials.json.example`.
+  /// Client secret paired with [driveTvClientId]. For "TVs and Limited Input
+  /// devices" clients Google's token endpoint REQUIRES a client_secret; per
+  /// Google's docs it is NOT confidential for this client type — but it must
+  /// still NOT be committed (GitHub secret-scanning flags it, and public
+  /// exposure invites app-impersonation/quota abuse). Provide it at build:
+  ///   --dart-define=DRIVE_TV_CLIENT_ID=... --dart-define=DRIVE_TV_CLIENT_SECRET=...
+  /// Keep the real values in the untracked `_shared/config/google_credentials.json`
+  /// (see the `.example`) / the team secrets store, never in source.
+  /// Rotated 2026-07-31 after the prior hardcoded pair leaked (GitHub alert #2).
   static const String driveTvClientSecret =
-      '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'; // from Apple Note "Interact pro:" — TV (Device Flow) client, created 2026-05-16
+      String.fromEnvironment('DRIVE_TV_CLIENT_SECRET');
 
-  /// True once the TV OAuth pair is fully configured.
+  /// True once the TV OAuth pair is fully configured. `String.fromEnvironment`
+  /// defaults to '' when the --dart-define is absent, so isNotEmpty is the real
+  /// gate (a bare !startsWith('TODO_') would wrongly report configured on '').
   static bool get driveTvConfigured =>
+      driveTvClientId.isNotEmpty &&
+      driveTvClientSecret.isNotEmpty &&
       !driveTvClientId.startsWith('TODO_') &&
       !driveTvClientSecret.startsWith('TODO_');
 

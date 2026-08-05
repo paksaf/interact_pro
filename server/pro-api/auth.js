@@ -111,7 +111,8 @@ export async function requireAuth(req, res, next) {
   const payload = await verifyToken(rawToken);
   if (!payload) return res.status(401).json({ error: 'Invalid or expired token' });
   const user = await queryOne(
-    `SELECT id, email, phone, display_name, role, trial_ends_at, pro_active
+    `SELECT id, email, phone, display_name, role, trial_ends_at, trial_extensions,
+            pro_active, created_at
        FROM users
       WHERE id = $1`,
     [payload.sub],

@@ -1,4 +1,5 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+          xmlns:tools="http://schemas.android.com/tools">
     <!-- ─── Network for Drive sync ──────────────────────────────── -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
@@ -7,8 +8,16 @@
     <!-- ─── LAN device discovery (mDNS / Bonjour) ───────────────── -->
     <!-- Some routers + Android battery managers drop multicast packets
          unless the app holds a MulticastLock. Acquired in code at the
-         start of LanDiscoveryService.startBrowsing(). -->
+         start of LanDiscoveryService.startBrowsing() via the
+         `interact_pro/multicast` platform channel (MainActivity.kt). -->
     <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE" />
+    <!-- Android 13+ nearby-Wi-Fi runtime permission. NSD (bonsoir) itself
+         doesn't strictly require it, but the SSDP/DLNA fallback and any
+         future Wi-Fi peer scan do; `neverForLocation` keeps the location
+         dialog out of the grant flow (2026-07-02 connectivity canon). -->
+    <uses-permission android:name="android.permission.NEARBY_WIFI_DEVICES"
+                     android:usesPermissionFlags="neverForLocation"
+                     tools:targetApi="tiramisu" />
 
     <!-- ─── Camera for scanner / signing on screen ─────────────── -->
     <uses-permission android:name="android.permission.CAMERA" />

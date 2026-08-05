@@ -386,8 +386,8 @@ class _RootShellState extends ConsumerState<_RootShell> {
     // shortcuts for OK/Enter/Space/GameButtonA). Render it vertically
     // inside a fixed-width side strip.
     //
-    // Phone/tablet keep the bottom NavigationBar (works fine for
-    // touch + the Material 3 default for compact-width devices).
+    // TV gets the custom focusable side strip; phone/tablet use
+    // ProAdaptiveNavScaffold (bottom bar <600px, side rail ≥600px).
     if (isTvLike) {
       return Scaffold(
         body: SafeArea(
@@ -433,16 +433,15 @@ class _RootShellState extends ConsumerState<_RootShell> {
       );
     }
 
-    return Scaffold(
+    final safeIndex = _index < destinations.length ? _index : 0;
+    return ProAdaptiveNavScaffold(
       body: widget.child,
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _index < destinations.length ? _index : 0,
-        destinations: destinations,
-        onDestinationSelected: (i) {
-          setState(() => _index = i);
-          context.go(paths[i]);
-        },
-      ),
+      selectedIndex: safeIndex,
+      destinations: destinations,
+      onDestinationSelected: (i) {
+        setState(() => _index = i);
+        context.go(paths[i]);
+      },
     );
   }
 }

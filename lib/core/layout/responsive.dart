@@ -131,6 +131,86 @@ class AdaptivePane extends StatelessWidget {
 ///   child: ListView( ... ),
 /// )
 /// ```
+/// Breakpoints for primary nav chrome (bottom bar vs side rail).
+///
+/// Ported from `interact-app/lib/core/ui/responsive.dart`
+/// (`TalkAdaptiveNavScaffold` / IL `IlAdaptiveNavScaffold`).
+class ProNavBreakpoints {
+  ProNavBreakpoints._();
+
+  static const double tablet = 600;
+  static const double largeTablet = 900;
+}
+
+bool isProTabletNavWidth(double maxWidth) =>
+    maxWidth >= ProNavBreakpoints.tablet;
+
+bool isProLargeTabletNavWidth(double maxWidth) =>
+    maxWidth >= ProNavBreakpoints.largeTablet;
+
+/// Adaptive primary navigation: bottom [NavigationBar] on phone-width screens,
+/// side [NavigationRail] on tablet-width+ (extended labels at ≥900 logical px).
+class ProAdaptiveNavScaffold extends StatelessWidget {
+  const ProAdaptiveNavScaffold({
+    super.key,
+    required this.body,
+    required this.destinations,
+    required this.selectedIndex,
+    required this.onDestinationSelected,
+    this.labelBehavior = NavigationDestinationLabelBehavior.alwaysShow,
+  });
+
+  final Widget body;
+  final List<NavigationDestination> destinations;
+  final int selectedIndex;
+  final ValueChanged<int> onDestinationSelected;
+  final NavigationDestinationLabelBehavior labelBehavior;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (BuildContext context, BoxConstraints constraints) {
+        if (!isProTabletNavWidth(constraints.maxWidth)) {
+          return Scaffold(
+            body: body,
+            bottomNavigationBar: NavigationBar(
+              selectedIndex: selectedIndex,
+              onDestinationSelected: onDestinationSelected,
+              labelBehavior: labelBehavior,
+              destinations: destinations,
+            ),
+          );
+        }
+
+        final bool extended =
+            isProLargeTabletNavWidth(constraints.maxWidth);
+        return Scaffold(
+          body: Row(
+            children: <Widget>[
+              NavigationRail(
+                selectedIndex: selectedIndex,
+                onDestinationSelected: onDestinationSelected,
+                extended: extended,
+                labelType: extended ? null : NavigationRailLabelType.all,
+                destinations: <NavigationRailDestination>[
+                  for (final NavigationDestination d in destinations)
+                    NavigationRailDestination(
+                      icon: d.icon,
+                      selectedIcon: d.selectedIcon,
+                      label: Text(d.label),
+                    ),
+                ],
+              ),
+              const VerticalDivider(width: 1),
+              Expanded(child: body),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
 class LandscapeFormBody extends StatelessWidget {
   const LandscapeFormBody({
     required this.child,

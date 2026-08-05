@@ -99,6 +99,27 @@ class _DriveBrowserScreenState extends ConsumerState<DriveBrowserScreen> {
     );
   }
 
+  Future<void> _makeVisibleOnTv(DriveFile file) async {
+    final repo = ref.read(driveRepositoryProvider);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Copying "${file.name}" for TV…')),
+    );
+    final res = await repo.makeVisibleOnTv(file.id, file.name);
+    if (!mounted) return;
+    res.fold(
+      (_) => ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Done — open Drive on the TV and it will be listed.',
+          ),
+        ),
+      ),
+      (failure) => ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(failure.message)),
+      ),
+    );
+  }
+
   Future<void> _openFile(DriveFile file) async {
     if (_downloadingId == file.id) return;
     setState(() => _downloadingId = file.id);
@@ -212,6 +233,18 @@ class _DriveBrowserScreenState extends ConsumerState<DriveBrowserScreen> {
               icon: const Icon(Icons.login),
               label: const Text('Sign in with Google'),
             ),
+            // TV field-debug line (2026-06-11): release builds emit no
+            // logcat, so surface WHY the TV thinks it's signed out.
+            // Harmless on phones; remove once the TV flow is stable.
+            const SizedBox(height: 12),
+            FutureBuilder<String>(
+              future: ref.read(driveRepositoryProvider).tvAuthDebug(),
+              builder: (_, snap) => Text(
+                snap.data ?? '…',
+                style: TextStyle(fontSize: 11, color: cs.outline),
+                textAlign: TextAlign.center,
+              ),
+            ),
             if (isTvLike) ...[
               const SizedBox(height: 32),
               Container(
@@ -291,13 +324,25 @@ class _DriveBrowserScreenState extends ConsumerState<DriveBrowserScreen> {
       ),
       data: (list) {
         if (list.isEmpty) {
+          // 2026-06-11: be honest about the drive.file boundary. Files
+          // uploaded via drive.google.com are NOT visible to the app —
+          // even inside the "Interact Pro" folder. Only app-created
+          // files show, and on TV that's the only possible scope.
+          final msg = DeviceInfo.isAndroidTv
+              ? 'No PDFs are visible to this TV yet.\n\n'
+                  'Google limits TV sign-ins to files created by Interact '
+                  'Pro itself — files uploaded on drive.google.com don\'t '
+                  'count, even inside the Interact Pro folder.\n\n'
+                  'Fix: open Interact Pro on your phone → Drive, then tap '
+                  'the TV icon next to any PDF to make it available here.'
+              : 'No PDFs visible yet. Upload from this app (or tap the TV '
+                  'icon next to a PDF to copy it into the app\'s Drive '
+                  'folder).';
           return Center(
             child: Padding(
               padding: const EdgeInsets.all(24),
               child: Text(
-                'No PDFs found in your Interact Pro Drive folder yet. '
-                'Upload PDFs to Drive (in the Interact Pro folder) — '
-                'they\'ll appear here.',
+                msg,
                 style:
                     TextStyle(color: Theme.of(context).colorScheme.outline),
                 textAlign: TextAlign.center,
@@ -323,7 +368,20 @@ class _DriveBrowserScreenState extends ConsumerState<DriveBrowserScreen> {
                       width: 18,
                       height: 18,
                       child: CircularProgressIndicator(strokeWidth: 2),)
-                  : const Icon(Icons.download_outlined),
+                  : Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Phone-only: copy into the app-owned folder so
+                        // the TV's drive.file session can see it.
+                        if (!DeviceInfo.isAndroidTv)
+                          IconButton(
+                            icon: const Icon(Icons.tv_outlined),
+                            tooltip: 'Show on TV',
+                            onPressed: () => _makeVisibleOnTv(f),
+                          ),
+                        const Icon(Icons.download_outlined),
+                      ],
+                    ),
               autofocus: i == 0,
               onTap: isDownloading ? null : () => _openFile(f),
             );

@@ -32,6 +32,10 @@ lib/keys.dart
 dart_defines.json
 dart_defines.*.json
 !dart_defines.example.json
+google_credentials.json
+**/google_credentials.json
+!google_credentials.json.example
+!**/google_credentials.json.example
 android/app/google-services.json
 ios/Runner/GoogleService-Info.plist
 ios/firebase_app_id_file.json
@@ -52,3 +56,9 @@ server/translate-proxy/package-lock.json
 **/*.g.dart
 **/*.freezed.dart
 **/*.mocks.dart
+
+# INTERACT fleet hardening: never commit env backups/secrets
+.env*.bak*
+.env.*.bak*
+*.env.bak*
+.env.bak

@@ -40,6 +40,29 @@ done
 
 cd "$APP_DIR"
 
+# ── Drive-TV OAuth (device-flow) defines ────────────────────────
+# DRIVE_TV_CLIENT_ID / DRIVE_TV_CLIENT_SECRET drive driveTvConfigured in
+# lib/core/constants/app_constants.dart. Source the real values from the
+# untracked _shared/config/google_credentials.json (tv_limited_input.*)
+# and refuse to build without them — a creds-less build silently ships
+# the Android-TV Drive login disabled. NEVER echo the secret.
+DRIVE_CREDS="$APP_DIR/../_shared/config/google_credentials.json"
+if command -v jq >/dev/null 2>&1; then
+  DRIVE_TV_CLIENT_ID="$(jq -r '.tv_limited_input.client_id // ""' "$DRIVE_CREDS" 2>/dev/null || true)"
+  DRIVE_TV_CLIENT_SECRET="$(jq -r '.tv_limited_input.client_secret // ""' "$DRIVE_CREDS" 2>/dev/null || true)"
+else
+  DRIVE_TV_CLIENT_ID="$(python3 -c "import json;print(json.load(open('$DRIVE_CREDS')).get('tv_limited_input',{}).get('client_id','') or '')" 2>/dev/null || true)"
+  DRIVE_TV_CLIENT_SECRET="$(python3 -c "import json;print(json.load(open('$DRIVE_CREDS')).get('tv_limited_input',{}).get('client_secret','') or '')" 2>/dev/null || true)"
+fi
+if [ -z "${DRIVE_TV_CLIENT_ID:-}" ] || [ -z "${DRIVE_TV_CLIENT_SECRET:-}" ] \
+   || [ "$DRIVE_TV_CLIENT_SECRET" = "PASTE_TV_CLIENT_SECRET_HERE" ]; then
+  echo "ERROR: DRIVE_TV_CLIENT_ID / DRIVE_TV_CLIENT_SECRET missing from" >&2
+  echo "       $DRIVE_CREDS (tv_limited_input.client_id / .client_secret)." >&2
+  echo "       Android-TV Drive device-flow login needs both baked in." >&2
+  exit 1
+fi
+echo "✓ Drive-TV OAuth client resolved (client_id ${#DRIVE_TV_CLIENT_ID} bytes, secret ${#DRIVE_TV_CLIENT_SECRET} bytes)"
+
 # ── Version bump ────────────────────────────────────────────────
 VERSION_LINE=$(grep "^version:" pubspec.yaml | head -1)
 VERSION_FULL="${VERSION_LINE#version: }"
@@ -63,14 +86,18 @@ if [ "$SKIP_BUILD" != "1" ]; then
   echo "→ dart run build_runner build (drift + riverpod + freezed)"
   dart run build_runner build --delete-conflicting-outputs
 
+  DRIVE_DEFINES=(
+    --dart-define=DRIVE_TV_CLIENT_ID="$DRIVE_TV_CLIENT_ID"
+    --dart-define=DRIVE_TV_CLIENT_SECRET="$DRIVE_TV_CLIENT_SECRET"
+  )
   if [ "$UNIVERSAL_ONLY" = "1" ]; then
     echo "→ flutter build apk --release (universal only)"
-    flutter build apk --release
+    flutter build apk --release "${DRIVE_DEFINES[@]}"
   else
     echo "→ flutter build apk --release --split-per-abi"
-    flutter build apk --release --split-per-abi
+    flutter build apk --release --split-per-abi "${DRIVE_DEFINES[@]}"
     echo "→ flutter build apk --release (universal)"
-    flutter build apk --release
+    flutter build apk --release "${DRIVE_DEFINES[@]}"
   fi
 fi
 

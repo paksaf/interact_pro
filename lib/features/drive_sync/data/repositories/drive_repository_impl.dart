@@ -16,6 +16,19 @@ class DriveRepositoryImpl implements DriveRepository {
   final GoogleDriveDataSource _ds;
 
   @override
+  Future<String> tvAuthDebug() => _ds.tvAuthDebug();
+
+  @override
+  Future<Result<void>> makeVisibleOnTv(String fileId, String name) async {
+    try {
+      await _ds.copyToAppFolder(fileId, name);
+      return const Result.ok(null);
+    } catch (e) {
+      return Result.err(NetworkFailure('Copy to Interact Pro folder failed', cause: e));
+    }
+  }
+
+  @override
   Future<Result<DriveUser>> signIn() async {
     try {
       // Try silent sign-in first. On Android TV / Google TV this is
@@ -77,6 +90,9 @@ class DriveRepositoryImpl implements DriveRepository {
   @override
   Future<Result<void>> signOut() async {
     try {
+      if (DeviceInfo.isAndroidTv) {
+        await _ds.signOutDeviceFlow();
+      }
       await _ds.signOut();
       return const Result.ok(null);
     } catch (e) {
@@ -86,6 +102,20 @@ class DriveRepositoryImpl implements DriveRepository {
 
   @override
   Future<DriveUser?> currentUser() async {
+    // Android TV: the ONLY working auth is the Device Flow tokens minted
+    // by DriveDeviceFlowScreen. (FIX 2026-06-11 — these were persisted
+    // but never consumed, so the TV bounced back to sign-in right after
+    // a successful "Device connected" grant.) Device Flow gives no
+    // profile info, so the DriveUser is synthetic.
+    if (DeviceInfo.isAndroidTv) {
+      if (await _ds.ensureDeviceFlowSession()) {
+        return const DriveUser(
+          email: 'Google Drive',
+          displayName: 'Connected (device code)',
+        );
+      }
+      return null;
+    }
     final a = _ds.currentAccount ?? await _ds.silentSignIn();
     if (a == null) return null;
     return DriveUser(

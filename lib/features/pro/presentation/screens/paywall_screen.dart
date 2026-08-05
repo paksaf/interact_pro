@@ -93,6 +93,32 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
                   return Column(children: products.map(_priceTile).toList());
                 },
               ),
+              // Extend-trial ("get more period") — only while the trial can
+              // still be extended (not paid, under the cap). 2026-07-18.
+              FutureBuilder<bool>(
+                future: ref.read(proRepositoryProvider).canExtendTrial(),
+                builder: (context, snap) {
+                  if (snap.data != true) return const SizedBox.shrink();
+                  return Padding(
+                    padding: const EdgeInsets.only(top: 12),
+                    child: OutlinedButton.icon(
+                      onPressed: () async {
+                        final sub =
+                            await ref.read(proRepositoryProvider).extendTrial();
+                        if (!mounted) return;
+                        final msg = sub.isTrial
+                            ? 'Trial extended — ${sub.trialDaysRemaining} days left.'
+                            : 'No more extensions left — please subscribe.';
+                        ScaffoldMessenger.of(context)
+                            .showSnackBar(SnackBar(content: Text(msg)));
+                        if (sub.isTrial) context.pop();
+                      },
+                      icon: const Icon(Icons.more_time),
+                      label: const Text('Get 14 more free days'),
+                    ),
+                  );
+                },
+              ),
               const SizedBox(height: 24),
               Text(
                 'Subscriptions auto-renew. Cancel anytime in your device settings. '

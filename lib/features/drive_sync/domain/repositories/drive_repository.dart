@@ -21,6 +21,13 @@ class DriveFile {
 }
 
 abstract class DriveRepository {
+  /// TV auth diagnostic line (see GoogleDriveDataSource.tvAuthDebug).
+  Future<String> tvAuthDebug();
+
+  /// Copy a Drive file into the app-owned Interact Pro folder so it
+  /// becomes visible to TV device-flow sessions (drive.file scope).
+  Future<Result<void>> makeVisibleOnTv(String fileId, String name);
+
   Future<Result<DriveUser>> signIn();
   Future<Result<void>> signOut();
   Future<DriveUser?> currentUser();

@@ -60,7 +60,14 @@ class GoogleDeviceFlowAuth {
     http.Client? httpClient,
     FlutterSecureStorage? secureStorage,
   })  : _http = httpClient ?? http.Client(),
-        _storage = secureStorage ?? const FlutterSecureStorage();
+        // encryptedSharedPreferences MUST match core/storage/secure_store.dart.
+        // The bare default uses the legacy RSA-keystore backend, which is
+        // flaky on TVs (writes "succeed", later reads return null) — the
+        // same bug class as the zeka SP->Keystore migration. 2026-06-11.
+        _storage = secureStorage ??
+            const FlutterSecureStorage(
+              aOptions: AndroidOptions(encryptedSharedPreferences: true),
+            );
 
   /// Google "TVs and Limited Input devices" OAuth client id. Different
   /// from the Android client id used by phone google_sign_in.
@@ -308,6 +315,24 @@ class GoogleDeviceFlowAuth {
   Future<bool> hasRefreshToken() async {
     final t = await _storage.read(key: _kRefreshToken);
     return t != null && t.isNotEmpty;
+  }
+
+  /// Field-debug: attempt a refresh RIGHT NOW and surface Google's exact
+  /// verdict (release builds have no logcat; this feeds the on-screen
+  /// diagnostic line). 2026-06-11.
+  Future<String> refreshDebug() async {
+    final rt = await _storage.read(key: _kRefreshToken);
+    if (rt == null || rt.isEmpty) return 'rt:none';
+    try {
+      final t = await _refreshAccessToken(rt);
+      return t == null ? 'refresh:null' : 'refresh:OK';
+    } on DeviceFlowException catch (e) {
+      final b = (e.body ?? '').replaceAll('\n', ' ');
+      final clipped = b.length > 140 ? b.substring(0, 140) : b;
+      return 'refresh:FAIL http${e.statusCode} $clipped';
+    } catch (e) {
+      return 'refresh:ERR $e';
+    }
   }
 }
 

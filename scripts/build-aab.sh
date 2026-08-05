@@ -28,8 +28,32 @@ if [ -z "$SECRET" ]; then
 fi
 echo "✓ AI secret found (${#SECRET} bytes)"
 
+# ─── Drive-TV OAuth (device-flow) defines ───────────────────────────
+# DRIVE_TV_CLIENT_ID / DRIVE_TV_CLIENT_SECRET feed driveTvConfigured in
+# lib/core/constants/app_constants.dart. Source the real values from the
+# untracked _shared/config/google_credentials.json (tv_limited_input.*)
+# and refuse to build without them. NEVER echo the secret.
+DRIVE_CREDS="$PROJECT_DIR/../_shared/config/google_credentials.json"
+if command -v jq >/dev/null 2>&1; then
+  DRIVE_TV_CLIENT_ID="$(jq -r '.tv_limited_input.client_id // ""' "$DRIVE_CREDS" 2>/dev/null || true)"
+  DRIVE_TV_CLIENT_SECRET="$(jq -r '.tv_limited_input.client_secret // ""' "$DRIVE_CREDS" 2>/dev/null || true)"
+else
+  DRIVE_TV_CLIENT_ID="$(python3 -c "import json;print(json.load(open('$DRIVE_CREDS')).get('tv_limited_input',{}).get('client_id','') or '')" 2>/dev/null || true)"
+  DRIVE_TV_CLIENT_SECRET="$(python3 -c "import json;print(json.load(open('$DRIVE_CREDS')).get('tv_limited_input',{}).get('client_secret','') or '')" 2>/dev/null || true)"
+fi
+if [ -z "${DRIVE_TV_CLIENT_ID:-}" ] || [ -z "${DRIVE_TV_CLIENT_SECRET:-}" ] \
+   || [ "$DRIVE_TV_CLIENT_SECRET" = "PASTE_TV_CLIENT_SECRET_HERE" ]; then
+  echo "ERROR: DRIVE_TV_CLIENT_ID / DRIVE_TV_CLIENT_SECRET missing from" >&2
+  echo "       $DRIVE_CREDS (tv_limited_input.client_id / .client_secret)." >&2
+  echo "       Android-TV Drive device-flow login needs both baked in." >&2
+  exit 1
+fi
+echo "✓ Drive-TV OAuth client resolved (client_id ${#DRIVE_TV_CLIENT_ID} bytes, secret ${#DRIVE_TV_CLIENT_SECRET} bytes)"
+
 echo "→ Building app bundle (release)…"
-flutter build appbundle --release --dart-define-from-file=dart_defines.json
+flutter build appbundle --release --dart-define-from-file=dart_defines.json \
+    --dart-define=DRIVE_TV_CLIENT_ID="$DRIVE_TV_CLIENT_ID" \
+    --dart-define=DRIVE_TV_CLIENT_SECRET="$DRIVE_TV_CLIENT_SECRET"
 
 AAB="build/app/outputs/bundle/release/app-release.aab"
 if [ ! -f "$AAB" ]; then

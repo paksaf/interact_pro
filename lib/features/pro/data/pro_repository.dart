@@ -38,6 +38,11 @@ abstract class ProRepository {
   /// trial. Trial length is fixed at [ProRepositoryImpl.trialDuration].
   Future<ProSubscription> startTrial();
 
+  /// Extend an existing trial by another window ("get more period"), capped by
+  /// [ProRepositoryImpl.maxTrialExtensions]. Returns the resulting subscription
+  /// (unchanged if paid or the cap is reached).
+  Future<ProSubscription> extendTrial();
+
   /// True iff the trial has been used (regardless of whether it's still
   /// active). Used to hide the "Start trial" CTA after consumption.
   Future<bool> hasTrialBeenUsed();
@@ -53,13 +58,19 @@ class ProRepositoryImpl implements ProRepository {
     );
   }
 
-  /// One-time free trial length. Tweak from a single place.
-  static const Duration trialDuration = Duration(days: 7);
+  /// Free trial window. Aligned 2026-07-18 to the portfolio standard
+  /// (INTERACT_TRIAL_DAYS = 14). Each extension adds another window.
+  static const Duration trialDuration = Duration(days: 14);
+
+  /// How many times the trial may be extended before the user must buy
+  /// (matches INTERACT_MAX_TRIAL_EXTENSIONS). The "get more period" loop.
+  static const int maxTrialExtensions = 2;
 
   static const _kSubKey = 'pro.subscription_state';
   static const _kProductIdKey = 'pro.product_id';
   static const _kTrialStartKey = 'pro.trial_started_at';
   static const _kTrialUsedKey = 'pro.trial_used';
+  static const _kTrialExtensionsKey = 'pro.trial_extensions';
 
   final InAppPurchase _iap;
   final AuthApiClient _auth;
@@ -84,7 +95,9 @@ class ProRepositoryImpl implements ProRepository {
     if (trialStartIso != null) {
       final start = DateTime.tryParse(trialStartIso);
       if (start != null) {
-        final endsAt = start.add(trialDuration);
+        final ext = prefs.getInt(_kTrialExtensionsKey) ?? 0;
+        // Each extension adds another full trial window.
+        final endsAt = start.add(trialDuration * (1 + ext));
         if (endsAt.isAfter(DateTime.now())) {
           return ProSubscription.trial(endsAt);
         }
@@ -148,6 +161,40 @@ class ProRepositoryImpl implements ProRepository {
     _ctrl.add(sub);
     appLogger.i('Trial started — ends ${sub.trialEndsAt}');
     return sub;
+  }
+
+  @override
+  Future<ProSubscription> extendTrial() async {
+    final current = await currentSubscription();
+    if (current.isPaid) return current; // already subscribed — no extension
+    final prefs = await SharedPreferences.getInstance();
+    final trialStartIso = prefs.getString(_kTrialStartKey);
+    if (trialStartIso == null) return current; // trial never started
+    final start = DateTime.tryParse(trialStartIso);
+    if (start == null) return current;
+
+    final ext = prefs.getInt(_kTrialExtensionsKey) ?? 0;
+    if (ext >= maxTrialExtensions) {
+      appLogger.i('extendTrial: extension limit reached ($ext)');
+      return current; // caller shows "subscribe" instead of "extend"
+    }
+    final next = ext + 1;
+    await prefs.setInt(_kTrialExtensionsKey, next);
+    // Re-open the trial window (clear the expired flag if it was set).
+    await prefs.setBool(_kTrialUsedKey, true);
+    final endsAt = start.add(trialDuration * (1 + next));
+    final sub = ProSubscription.trial(endsAt);
+    _ctrl.add(sub);
+    appLogger.i('Trial extended (#$next) — ends $endsAt');
+    return sub;
+  }
+
+  /// True while the trial can still be extended (not paid, under the cap).
+  Future<bool> canExtendTrial() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (prefs.getBool(_kSubKey) ?? false) return false;
+    if (prefs.getString(_kTrialStartKey) == null) return false;
+    return (prefs.getInt(_kTrialExtensionsKey) ?? 0) < maxTrialExtensions;
   }
 
   Future<void> _onPurchaseUpdates(List<PurchaseDetails> purchases) async {
