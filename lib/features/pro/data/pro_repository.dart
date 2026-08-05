@@ -201,6 +201,7 @@ class ProRepositoryImpl implements ProRepository {
   }
 
   /// True while the trial can still be extended (not paid, under the cap).
+  @override
   Future<bool> canExtendTrial() async {
     final prefs = await SharedPreferences.getInstance();
     if (prefs.getBool(_kSubKey) ?? false) return false;
