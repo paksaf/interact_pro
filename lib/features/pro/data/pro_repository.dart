@@ -46,6 +46,17 @@ abstract class ProRepository {
   /// True iff the trial has been used (regardless of whether it's still
   /// active). Used to hide the "Start trial" CTA after consumption.
   Future<bool> hasTrialBeenUsed();
+
+  /// True while the trial can still be extended — not on a paid plan, and
+  /// under [ProRepositoryImpl.maxTrialExtensions].
+  ///
+  /// FIXED 2026-08-05: this was implemented on `ProRepositoryImpl` but never
+  /// declared here, so `paywall_screen.dart` — which calls it through the
+  /// abstract type returned by `proRepositoryProvider` — failed to compile
+  /// with `The method 'canExtendTrial' isn't defined for the type
+  /// 'ProRepository'`. The implementation was always correct; only the
+  /// interface declaration was missing.
+  Future<bool> canExtendTrial();
 }
 
 class ProRepositoryImpl implements ProRepository {
