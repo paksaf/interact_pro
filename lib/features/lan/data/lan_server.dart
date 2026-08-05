@@ -116,6 +116,41 @@ class LanServer {
   /// for 60 seconds. After expiry the entry is removed.
   final Map<String, _PendingPair> _pendingPairs = {};
 
+  /// Pair-attempt timestamps, keyed by remote peer address. Defence-in-depth
+  /// added 2026-08-05 alongside removing `userIdHash` from `/info`.
+  ///
+  /// The replay hole is closed at the source (the hash is no longer
+  /// published), but `/pair/init` is still an unauthenticated endpoint that
+  /// mints secrets, so it should not be brute-forceable — either against the
+  /// 6-digit PIN path or by spraying guessed account hashes. Kept as a plain
+  /// in-memory map rather than a package: this is a short-lived LAN server on
+  /// a phone/TV, not a public API, and adding a dependency for one counter
+  /// would be disproportionate.
+  final Map<String, List<DateTime>> _pairAttempts = {};
+  static const _pairAttemptWindow = Duration(minutes: 1);
+  static const _pairAttemptsPerWindow = 5;
+
+  /// True when [peer] has exceeded [_pairAttemptsPerWindow] attempts inside
+  /// [_pairAttemptWindow]. Prunes expired entries as it goes so the map
+  /// cannot grow without bound (the same unbounded-dict mistake found in
+  /// interact-pro-ai-backend's rate limiter — see that repo's auth.py).
+  bool _pairRateLimited(String peer) {
+    final now = DateTime.now();
+    final hits = (_pairAttempts[peer] ?? const <DateTime>[])
+        .where((t) => now.difference(t) < _pairAttemptWindow)
+        .toList();
+    if (hits.length >= _pairAttemptsPerWindow) {
+      _pairAttempts[peer] = hits;
+      return true;
+    }
+    hits.add(now);
+    _pairAttempts[peer] = hits;
+    // Opportunistic sweep of peers that have gone quiet.
+    _pairAttempts.removeWhere((_, v) =>
+        v.every((t) => now.difference(t) >= _pairAttemptWindow));
+    return false;
+  }
+
   // ── Cast state ───────────────────────────────────────────────────────
   // Set by the cast service when the user starts a "cast whole document"
   // session. The `/cast/info` and `/cast/page/{n}.png` endpoints serve
@@ -230,7 +265,9 @@ class LanServer {
   // ── Endpoints ────────────────────────────────────────────────────────
 
   Future<Response> _info(Request req) async {
-    final myUserId = currentUserIdGetter?.call();
+    // NB: no `currentUserIdGetter` call here any more — /info is
+    // unauthenticated and deliberately publishes NOTHING account-derived.
+    // See the security note in the payload below.
     return Response.ok(
       jsonEncode({
         'deviceId': deviceId,
@@ -239,10 +276,27 @@ class LanServer {
         'apiVersion': 3, // bumped — adds same-userId auto-trust
         'tls': useTls,
         if (useTls) 'fingerprintSha256': tlsKeypair!.fingerprintSha256,
-        // Hashed userId — never send the raw user id over the LAN.
-        // Both peers compute SHA-256(userId) and compare; identical
-        // hashes mean same account. We omit when signed-out.
-        if (myUserId != null) 'userIdHash': _userIdHash(myUserId),
+        // ⚠️ SECURITY FIX 2026-08-05 — `userIdHash` REMOVED from this
+        // unauthenticated response. Do NOT reintroduce it.
+        //
+        // The hash was published here to anyone who could reach the device,
+        // while `/pair/init` simultaneously treated a MATCHING hash as proof
+        // of same-account ownership and minted a 32-byte pairing secret with
+        // no PIN. Those two facts together made the whole auto-trust path
+        // forgeable by replay:
+        //     1. GET  /info            → read `userIdHash`
+        //     2. POST /pair/init       → echo it back as `fromUserIdHash`
+        //     3. receive the secret; you are now a trusted paired device.
+        // The hash correctly protected the RAW user id from enumeration (its
+        // stated purpose) but was then used as a bearer credential, which it
+        // is not — it is a public identifier.
+        //
+        // Removing it is behaviour-preserving: NOTHING reads this field.
+        // Verified by grep across lib/ — the sender computes its own hash
+        // locally in `lan_repository.dart` (`_userIdHash`, used at the
+        // `fromUserIdHash` call site) and never consults the value published
+        // here. The receiver still compares hashes in `/pair/init`; it just
+        // no longer hands an attacker the answer first.
       }),
       headers: {'Content-Type': 'application/json'},
     );
@@ -256,6 +310,21 @@ class LanServer {
   }
 
   Future<Response> _pairInit(Request req) async {
+    // Rate-limit before any parsing or secret minting (see _pairRateLimited).
+    // `shelf.io` exposes the peer via this context key; fall back to a single
+    // shared bucket if it is ever absent, which fails CLOSED (stricter) rather
+    // than open.
+    final peer =
+        (req.context['shelf.io.connection_info'] as dynamic)?.remoteAddress
+                ?.address as String? ??
+            'unknown-peer';
+    if (_pairRateLimited(peer)) {
+      appLogger.w('LAN pair: rate-limited $peer '
+          '(>$_pairAttemptsPerWindow attempts / ${_pairAttemptWindow.inSeconds}s)');
+      return Response(429,
+          body: jsonEncode({'error': 'too_many_pair_attempts'}),
+          headers: {'Content-Type': 'application/json'});
+    }
     final body = await req.readAsString();
     Map<String, dynamic> json;
     try {
